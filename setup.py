@@ -9,6 +9,7 @@ from setuptools import setup, find_packages
 # To use a consistent encoding
 from codecs import open
 from os import path
+from morphct.__version__ import __version__
 
 here = path.abspath(path.dirname(__file__))
 
@@ -22,13 +23,13 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='3.1.1',
+    version=__version__,
 
     description='A multi-scale (1A to 1um, 1fs to 1us) organic solar cell simulation suite - from molecules to efficiencies',
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://bitbucket.org/cmelab/morphct/src/master',
+    url='https://github.com/cmelab/morphct',
 
     # Author details
     author='Matty Jones',
@@ -43,7 +44,7 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 5 - Production/Stable',
+        'Development Status :: 3 - Alpha',
 
         # Indicate who your project is intended for
         'Intended Audience :: Science/Research',
@@ -99,16 +100,6 @@ setup(
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
-    entry_points={
-        'console_scripts': [
-            "fixImages=morphct.utils.fix_images:main",
-            "orca2xyz=morphct.utils.convert_to_xyz:main",
-            "KMCAnalyse=morphct.utils.KMC_analyse:main",
-            "createMontage=morphct.utils.create_montage:main",
-            "addHydrogens=morphct.utils.add_hydrogens:main",
-            "updatePickle=morphct.utils.update_pickle:main",
-            "morphctInit=morphct.utils.init_morphct:main",
-            "addErrorBars=morphct.utils.add_error_bars:main",
-        ],
-    },
+    #entry_points={
+    #},
 )

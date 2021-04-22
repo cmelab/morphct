@@ -1,0 +1,20 @@
+name: morphct-ex
+channels:
+- conda-forge
+dependencies:
+- ele=0.1.0
+- freud=2.4.1
+- gsd=2.4.0
+- matplotlib=3.3.4
+- numpy=1.19
+- openbabel=3.1.1
+- pip=21.0.1
+- python=3.7
+- scipy=1.4.1
+- mbuild=0.10.13
+- py3dmol=0.8.0
+- ipython=7.10.0 
+- jupyterlab=3.0.9
+- nodejs>=10
+- pip:
+    - pyscf==1.7

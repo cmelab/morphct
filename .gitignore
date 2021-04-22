@@ -4,7 +4,6 @@ codecoverage/
 morphct/utils/*
 *temp*
 *.hoomdxml
-*ipynb*
 *par*.py
 *.cprof
 *.bak

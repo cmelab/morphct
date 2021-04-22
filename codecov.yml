@@ -1,0 +1,3 @@
+ignore:
+  - "morphct/tests"
+  - "setup.py"
