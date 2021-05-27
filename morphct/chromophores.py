@@ -118,7 +118,11 @@ def get_chromo_ids_smiles(snap, smarts_str, conv_dict, ff=None, steps=100):
 
     Returns
     -------
-
+    list:
+        the atom ids
+    or
+    compound: pybel.Molecule
+        if no choms found
     """
     box = snap.configuration.box[:3]
     unwrapped_positions = snap.particles.position + snap.particles.image * box
