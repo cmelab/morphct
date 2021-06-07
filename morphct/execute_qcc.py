@@ -10,24 +10,24 @@ from morphct import transfer_integrals as ti
 
 
 def get_homolumo(molstr, verbose=0, tol=1e-6):
-    """
-    Get the HOMO-1, HOMO, LUMO, LUMO+1 energies for the given input string
-    using the MINDO3 method in pySCF.
+    """Get the HOMO-1, HOMO, LUMO, LUMO+1 energies in eV using MINDO3.
+
+    See https://pyscf.org/quickstart.html for more information.
 
     Parameters
     ----------
     molstr : str
         Input string for pySCF containing elements and positions in Angstroms
         (e.g., "C 0.0 0.0 0.0; H 1.54 0.0 0.0")
-    verbose : int
+    verbose : int, default 0
         Verbosity level of the MINDO calculation output. 0 will silence output,
-        4 will show convergence. (default 0)
-    tol : float
-        Tolerance of the MINDO convergence (default 1e-6)
+        4 will show convergence.
+    tol : float, default 1e-6
+        Tolerance of the MINDO convergence.
 
     Returns
     -------
-    numpy.array
+    numpy.ndarray
         Array containing HOMO-1, HOMO, LUMO, LUMO+1 energies in eV
     """
     mol = pyscf.M(atom=molstr)
@@ -40,26 +40,23 @@ def get_homolumo(molstr, verbose=0, tol=1e-6):
 
 
 def singles_homolumo(chromo_list, filename=None, nprocs=None):
-    """
-    Obtain the HOMO-1, HOMO, LUMO, LUMO+1 energies in eV for all single
-    chromophores
+    """Get the HOMO-1, HOMO, LUMO, LUMO+1 energies for all single chromophores.
 
     Parameters
     ----------
-    chromo_list : list of morphct.obtain_chromophores.Chromophore
+    chromo_list : list of Chromophore
         Chromophores to calculate energies of. Each Chromophore must have
         qcc_input attribute set.
-    filename : str
+    filename : str, default None
         Path to file where singles energies will be saved. If None, energies
-        will not be saved. (default None)
-    nprocs : int
+        will not be saved.
+    nprocs : int, default None
         Number of processes passed to multiprocessing.Pool. If None,
         multiprocessing.cpu_count will used to determine optimal number.
-        (default None)
 
     Returns
     -------
-    data : numpy.array
+    data : numpy.ndarray
         Array of energies where each row corresponds to the MO energies of each
         chromophore in the list.
     """
@@ -75,27 +72,24 @@ def singles_homolumo(chromo_list, filename=None, nprocs=None):
 
 
 def dimer_homolumo(qcc_pairs, filename=None, nprocs=None):
-    """
-    Obtain the HOMO-1, HOMO, LUMO, LUMO+1 energies in eV for all chromophore
-    pairs
+    """Get the HOMO-1, HOMO, LUMO, LUMO+1 energies for all chromophore pairs.
 
     Parameters
     ----------
-    qcc_pairs : list of (tuple and string)
+    qcc_pairs : list of ((int, int), str)
         Each list item contains a tuple with the indices of the pair and the
         qcc input string.
-        qcc_pairs is returned by morphct.chromophores.set_neighbors_voronoi()
-    filename : str
+        qcc_pairs is returned by `morphct.chromophores.set_neighbors_voronoi`
+    filename : str, default None
         Path to file where the pair energies will be saved. If None, energies
-        will not be saved. (default None)
-    nprocs : int
+        will not be saved.
+    nprocs : int, default None
         Number of processes passed to multiprocessing.Pool. If None,
         multiprocessing.cpu_count will used to determine optimal number.
-        (default None)
 
     Returns
     -------
-    dimer_data : list of (tuple or ints, numpy.array)
+    dimer_data : list of ((int, int), numpy.ndarray)
         Each list item contains the indices of the pair and an array of its MO
         energies.
     """
@@ -116,8 +110,7 @@ def dimer_homolumo(qcc_pairs, filename=None, nprocs=None):
 
 
 def get_dimerdata(filename):
-    """
-    Read in the saved data created by dimer_homolumo().
+    """Read in the saved data created by `dimer_homolumo`.
 
     Parameters
     ----------
@@ -126,7 +119,7 @@ def get_dimerdata(filename):
 
     Returns
     -------
-    dimer_data : list of (tuple or ints, numpy.array)
+    dimer_data : list of ((int, int), numpy.ndarray)
         Each list item contains the indices of the pair and an array of its MO
         energies.
     """
@@ -141,8 +134,7 @@ def get_dimerdata(filename):
 
 
 def get_singlesdata(filename):
-    """
-    Read in the saved data created by singles_homolumo().
+    """Read in the saved data created by `singles_homolumo`.
 
     Parameters
     ----------
@@ -151,7 +143,7 @@ def get_singlesdata(filename):
 
     Returns
     -------
-    numpy.array
+    numpy.ndarray
         Array of energies where each row corresponds to the MO energies of each
         chromophore in the list.
     """
@@ -159,15 +151,15 @@ def get_singlesdata(filename):
 
 
 def set_energyvalues(chromo_list, s_filename, d_filename):
-    """
-    Set the energy attributes of the Chromophore objects in chromo_list.
+    """Set the energy attributes of the Chromophore objects in chromo_list.
+
     Run singles_homolumo and dimer_homolumo first to get the energy files.
     Energy values set by this function:
-        homo_1, homo, lumo, lumo_1, neighbors_delta_E, neighbors_TI
+        homo_1, homo, lumo, lumo_1, neighbors_delta_e, neighbors_ti
 
     Parameters
     ----------
-    chromo_list : list of morphct.obtain_chromophores.Chromophore
+    chromo_list : list of Chromophore
         Set the energy values of the chromphores in this list.
     s_filename : str
         Path to file where the singles energies were saved.
@@ -199,14 +191,28 @@ def set_energyvalues(chromo_list, s_filename, d_filename):
 
 
 def write_qcc_inp(snap, atom_ids, conversion_dict):
-    """
+    """Write a quantum chemical input string.
+
+    Input string for pySCF containing elements and positions in Angstroms
+    (e.g., "C 0.0 0.0 0.0; H 1.54 0.0 0.0")
+    See https://pyscf.org/quickstart.html for more information.
 
     Parameters
     ----------
+    snap : gsd.hoomd.Snapshot
+        Atomistic simulation snapshot from a GSD file. It is expected that the
+        lengths in this file have been converted to Angstroms.
+    atom_ids : numpy.ndarray of int
+        Snapshot indices of the particles to include in the input string.
+    conversion_dict : dictionary
+        A dictionary that maps the atom type to its element. e.g., `{'c3': C}`
+        An instance that maps AMBER types to their element can be found in
+        `amber_dict`.
 
     Returns
     -------
-
+    str
+        The input for the MINDO3 quantum chemical calculation run in pySCF.
     """
     atoms = []
     positions = []
@@ -269,17 +275,34 @@ def write_qcc_inp(snap, atom_ids, conversion_dict):
 
 
 def write_qcc_pair_input(snap, chromo_i, chromo_j, j_shift, conversion_dict):
-    """
+    """Write a quantum chemical input string for chromophore pairs.
+
+    Pair input requires taking periodic images into account.
+    Input string for pySCF containing elements and positions in Angstroms
+    (e.g., "C 0.0 0.0 0.0; H 1.54 0.0 0.0")
+    See https://pyscf.org/quickstart.html for more information.
 
     Parameters
     ----------
-    j_shift : numpy.array(3)
-        vector to shift chromophore j
-        (chromophore j minimum image center - unwrapped center)
+    snap : gsd.hoomd.Snapshot
+        Atomistic simulation snapshot from a GSD file. It is expected that the
+        lengths in this file have been converted to Angstroms.
+    chromo_i : Chromophore
+        One of the chromophores to be written.
+    chromo_j : Chromophore
+        One of the chromophores to be written.
+    j_shift : numpy.ndarray(3)
+        Vector to shift chromo_j.
+        (chromo_j minimum image center - unwrapped center)
+    conversion_dict : dictionary
+        A dictionary that maps the atom type to its element. e.g., `{'c3': C}`
+        An instance that maps AMBER types to their element can be found in
+        `amber_dict`.
 
     Returns
     -------
-
+    str
+        The input for the MINDO3 quantum chemical calculation run in pySCF.
     """
     box = snap.configuration.box[:3]
     unwrapped_pos = snap.particles.position + snap.particles.image * box

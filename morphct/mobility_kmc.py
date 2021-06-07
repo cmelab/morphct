@@ -22,6 +22,105 @@ except RuntimeError:
 
 
 class Carrier:
+    """An object for tracking the progress of a charge carrier.
+
+    Parameters
+    ----------
+    chromo : Chromophore
+        The chromophore on which this carrier starts.
+    lifetime : float
+        The carrier lifetime in seconds.
+    carrier_no : int
+        The id number of this carrier.
+    box: numpy.ndarray
+        The lengths of the box vectors. Box is assumed to be orthogonal.
+    temp : float
+        The temperature in Kelvin.
+    n : int
+        The number of chromophores.
+    hop_limit : int, default None
+       A maximum number of hops used to kill the KMC run.
+    record_history : bool, default True
+        Whether to record the carrier history in the form of a sparse matrix.
+    mol_id_dict : dict, default None
+        A dictionary that maps the chromophore index to the molecule index.
+
+        >>> mol_id_dict[chromophore_index]
+        ... molecule_index
+
+        Used to determine whether a hop is inter- or intra- molecular.
+    use_avg_hoprates : bool, default False
+       Whether to use the average hop rates instead of calculating each hop.
+    avg_intra_rate : float, default None
+        The average intramolecular hop rate in inverse seconds.
+    avg_inter_rate : float, default None
+        The average intermolecular hop rate in inverse seconds.
+    use_koopmans : bool, default False
+        Whether to use Koopman's approximation.
+    boltz : bool, default False
+        Whether to use a Boltzmann energy penalty
+    use_vrh : bool, default False
+        Whether to use variable-range hopping.
+    hopping_prefactor : float, default 1.0
+        A prefactor to the rate equation.
+
+    Attributes
+    ----------
+    id : int
+        The index of this carrier.
+    image : numpy.ndarray
+        The image of this carrier. Used to account for the periodic boundary.
+    initial_chromo : Chromophore
+        The chromophore on which the carrier was initialized.
+    current_chromo : Chromophore
+        The chromophore on which the carrier resides currently.
+    lambda_ij : float
+        The reorganization energy in eV.
+    hop_limit : int
+        The maximum number of hops.
+    temp : float
+        The temperature in Kelvin.
+    lifetime : float
+        The carrier lifetime in seconds.
+    current_time : float
+        The current time in the simulation. (Starts at 0.0.)
+    hole_history : scipy.sparse.lil_matrix, shape (n x n), dtype int
+        A sparse matrix to track which chromophores a hole has occupied.
+    electron_history : scipy.sparse.lil_matrix, shape (n x n), dtype int
+        A sparse matrix to track which chromophores an electron has occupied.
+    c_type : str
+        The carrier type, "electron" or "hole".
+    n_hops : int
+        The number of hops the carrier has performed.
+    box : numpy.ndarray
+        The lengths of the box vectors of the simulation box.
+    displacement : float
+        The net displacement of the carrier in Angstroms.
+    mol_id_dict : dict
+        A dictionary that maps the chromophore index to the molecule index.
+    use_avg_hoprates : bool
+       Whether to use the average hop rates instead of calculating each hop.
+    avg_intra_rate : float
+        The average intramolecular hop rate in inverse seconds.
+    avg_inter_rate : float
+        The average intermolecular hop rate in inverse seconds.
+    use_koopmans : bool
+        Whether to use Koopman's approximation.
+    boltz : bool
+        Whether to use a Boltzmann energy penalty
+    use_vrh : bool
+        Whether to use variable-range hopping.
+    vrh_delocalization : float
+        The variable-range hopping rate (?) TODO EJ
+    hopping_prefactor : float
+        A prefactor to the rate equation.
+
+    Methods
+    -------
+    update_displacement()
+    calculate_hop(chromo_list, verbose=0)
+    perform_hop(destination_chromo, hop_time, rel_image)
+    """
     def __init__(
         self,
         chromo,
@@ -44,26 +143,23 @@ class Carrier:
         both_rates = avg_inter_rate is None and avg_intra_rate is None
         any_rate = avg_inter_rate is None or avg_intra_rate is None
         if use_avg_hoprates and any_rate:
-            err_msg = (
-                    "If use_avg_hoprates is True, avg_inter_rate and "+
-                    "avg_intra_rate must also be provided"
-                    )
-            raise ValueError(err_msg)
+            raise ValueError(
+                "If use_avg_hoprates is True, avg_inter_rate and "
+                "avg_intra_rate must also be provided"
+            )
 
         elif not use_avg_hoprates and not both_rates:
-            warn_msg = (
-                    "You provided an average hop rate (avg_inter_rate or "+
-                    "avg_intra_rate) but use_avg_hoprates is False. "+
-                    "The provided hop rate will not be used"
-                    )
-            warnings.warn(warn_msg)
+            warnings.warn(
+                "You provided an average hop rate (avg_inter_rate or "
+                "avg_intra_rate) but use_avg_hoprates is False. "
+                "The provided hop rate will not be used"
+            )
 
         elif use_avg_hoprates and mol_id_dict is None:
-            err_msg = (
-                    "If use_avg_hoprates is True, a molecule dictionary "+
-                    "(mol_id_dict) must also be provided"
-                    )
-            raise ValueError(err_msg)
+            raise ValueError(
+                "If use_avg_hoprates is True, a molecule dictionary "
+                "(mol_id_dict) must also be provided"
+            )
 
         self.id = carrier_no
         self.image = np.array([0, 0, 0])
@@ -108,12 +204,31 @@ class Carrier:
         self.hopping_prefactor = hopping_prefactor
 
     def update_displacement(self):
+        """Update the carrier displacement accounting for periodic boundary.
+
+        Uses the `initial_chromo` and `current_chromo` centers along with the
+        `box` and `image` to update the `displacement`.
+        """
         init_pos = self.initial_chromo.center
         final_pos = self.current_chromo.center
         displacement = final_pos - init_pos + self.image * self.box
         self.displacement = np.linalg.norm(displacement)
 
     def calculate_hop(self, chromo_list, verbose=0):
+        """Calculate a hop for this carrier.
+
+        Parameters
+        ----------
+        chromo_list : list of Chromophore
+            The chromophore objects in the simulation.
+        verbose : int, default 0
+            The verbosity level of output.
+
+        Returns
+        -------
+        bool
+            Whether the simulation should continue.
+        """
         # Terminate if the next hop would be more than the termination limit
         if self.hop_limit is not None:
             if self.n_hops + 1 > self.hop_limit:
@@ -212,6 +327,17 @@ class Carrier:
         return True
 
     def perform_hop(self, destination_chromo, hop_time, rel_image):
+        """Hop the carrier from the current to the destination chromophore.
+
+        Parameters
+        ----------
+        destination_chromo : Chromophore
+            The chromophore to hop to.
+        hop_time : float
+            The time the hop will take in seconds.
+        rel_image : numpy.ndarray
+            The relative image of the destination chromophore.
+        """
         init_id = self.current_chromo.id
         dest_id = destination_chromo.id
         self.image += rel_image
@@ -230,7 +356,7 @@ class Carrier:
 
 def run_single_kmc(
     jobs,
-    KMC_directory,
+    kmc_directory,
     chromo_list,
     snap,
     temp,
@@ -240,13 +366,48 @@ def run_single_kmc(
     send_end=None,
     verbose=0,
 ):
+    """Run a single KMC simulation process.
+
+    Parameters
+    ----------
+    jobs : list of (int, float, str)
+        List of parameters for the KMC job: the carrier index, lifetime, and
+        species ("electron" or "hole").
+    kmc_directory : path
+        Path to the directory where the KMC results will be stored.
+    chromo_list : list of Chromphore
+        List of the chromophore objects in the simulation.
+    snap : gsd.hoomd.Snapshot
+        The simulation snapshot.
+    temp : float
+        The simulation temperature in Kelvin.
+    carrier_kwargs : dict, default {}
+        The keyword arguments for the Carrier instances.
+    cpu_rank : int, default None
+        The cpu rank of this particular run.
+    seed : int, default None
+        A seed for the random processes.
+    send_end : multiprocessing.connection.Connection, default None
+        The "send" connection object returned by `multiprocessing.Pipe` to which
+        the result will be sent. If None is given, the function will return the
+        result.
+    verbose : int, default 0
+        The verbosity level of output.
+
+    Returns
+    -------
+    list of Carrier
+        if send_end is None (this function is being run on its own), the
+        carrier_list is returned. Otherwise it is assumed this function is being
+        as part of amultiprocessing run and nothing is returned.
+    """
     if seed is not None:
         np.random.seed(seed)
 
     if cpu_rank is not None:
         # If we're running on multiple cpus, don't print to std out
         # print to a log file instead and start fresh: remove it if it exists
-        filename = os.path.join(KMC_directory, f"kmc_{cpu_rank:02d}.log")
+        filename = os.path.join(kmc_directory, f"kmc_{cpu_rank:02d}.log")
         if os.path.exists(filename):
             os.remove(filename)
     else:
@@ -334,7 +495,7 @@ def snap_molecule_indices(snap):
 
     Returns
     -------
-    numpy array (N_particles,)
+    numpy.ndarray (N_particles,)
     """
     system = freud.AABBQuery.from_system(snap)
     n_query_pts = n_pts = snap.bonds.N
@@ -352,6 +513,20 @@ def snap_molecule_indices(snap):
 
 
 def get_molecule_ids(snap, chromo_list):
+    """Get the molecule index of each chromophore.
+
+    Parameters
+    ----------
+    snap : gsd.hoomd.Snapshot
+        The simulation snapshot.
+    chromo_list : list of Chromphore
+        The chromophores in the simulation.
+
+    Returns
+    -------
+    dict
+        A dictionary that maps the chromophore index to the molecule index.
+    """
     print("Determining molecule IDs...")
     # Determine molecules based on bonds
     molecules = snap_molecule_indices(snap)
@@ -363,6 +538,28 @@ def get_molecule_ids(snap, chromo_list):
 
 
 def get_jobslist(sim_times, n_holes=0, n_elec=0, nprocs=None, seed=None):
+    """Create a random list of KMC jobs.
+
+    Parameters
+    ----------
+    sim_times : list of float
+        The potential lifetimes of the carriers.
+    n_holes : int, default 0
+        The number of holes to simulate.
+    n_elec : int, default 0
+        The number of electrons to simulate.
+    nprocs : int, default None
+        The number of processes in a multiprocessing run. If None is given, the
+        `multiprocessing.cpu_count` will be used.
+    seed : int, default None
+        A seed for the random processes.
+
+    Returns
+    -------
+    list of (int, float, str)
+        Randomized list of parameters for the KMC job: the carrier index, its
+        lifetime, and its species ("electron" or "hole").
+    """
     # Get the random seed now for all the child processes
     if seed is not None:
         np.random.seed(seed)
@@ -377,9 +574,9 @@ def get_jobslist(sim_times, n_holes=0, n_elec=0, nprocs=None, seed=None):
     # statistics more quickly
     for lifetime in sim_times:
         for carrier_no in range(n_holes):
-            carriers.append([carrier_no, lifetime, "hole"])
+            carriers.append((carrier_no, lifetime, "hole"))
         for carrier_no in range(n_elec):
-            carriers.append([carrier_no, lifetime, "electron"])
+            carriers.append((carrier_no, lifetime, "electron"))
     np.random.shuffle(carriers)
     step = math.ceil(len(carriers) / nprocs)
     jobs_list = [carriers[i : i + step] for i in range(0, len(carriers), step)]
@@ -387,15 +584,61 @@ def get_jobslist(sim_times, n_holes=0, n_elec=0, nprocs=None, seed=None):
 
 
 def run_kmc(
-    jobs_list,
-    KMC_directory,
+    lifetimes,
+    kmc_directory,
     chromo_list,
     snap,
     temp,
-    combine_KMC_results=True,
+    n_holes=0,
+    n_elec=0,
+    seed=42,
+    combine=True,
     carrier_kwargs={},
     verbose=0,
     ): # pragma: no cover
+    """Run KMC simulation using multiprocessing.
+
+    Parameters
+    ----------
+    lifetimes : list of float
+        The potential lifetimes of the carriers. A value from these will be
+        randomly assigned to each run.
+    kmc_directory : path
+        The path to the directory where the KMC results will be saved.
+    chromo_list : list of Chromphore
+        The chromophores in the simulation.
+    snap : gsd.hoomd.Snapshot
+        The simulation snapshot.
+    temp : float
+        The simulation temperature in Kelvin.
+    n_holes : int, default 0
+        The number of holes to simulate.
+    n_elec : int, default 0
+        The number of electrons to simulate.
+    seed : int, default 42
+        A seed for the random processes.
+    combine : bool, default True
+        Whether to combine the results into a dictionary or return a list of
+        Carriers.
+    carrier_kwargs : dict, default {}
+        Additional keyword arguments to be passed to the carrier instances.
+    verbose : int, default 0
+        The verbosity level of output.
+
+    Returns
+    -------
+    dict or list of Carriers
+        if combine is True, returns dict; otherwise returns list of Carriers.
+        Dict keys are Carrier attributes:
+        'id', 'image', 'initial_position', 'current_position', 'lambda_ij',
+        'hop_limit', 'temp', 'lifetime', 'current_time', 'hole_history',
+        'electron_history', 'c_type', 'n_hops', 'box', 'displacement',
+        'mol_id_dict', 'use_avg_hoprates', 'avg_intra_rate', 'avg_inter_rate',
+        'use_koopmans', 'boltz', 'use_vrh', 'hopping_prefactor'
+    """
+    jobs_list = get_jobslist(
+        lifetimes, n_holes=n_holes, n_elec=n_elec, seed=seed
+    )
     running_jobs = []
     pipes = []
 
@@ -405,7 +648,7 @@ def run_kmc(
         recv_end, send_end = mp.Pipe(False)
         p = mp.Process(
             target=run_single_kmc,
-            args=(jobs, KMC_directory, chromo_list, snap, temp),
+            args=(jobs, kmc_directory, chromo_list, snap, temp),
             kwargs={
                 "carrier_kwargs": carrier_kwargs,
                 "seed": child_seed,
@@ -427,7 +670,7 @@ def run_kmc(
     carriers = [item for sublist in carriers_lists for item in sublist]
     # Now combine the carrier data
     v_print("All KMC jobs completed!", verbose)
-    if combine_KMC_results:
+    if combine:
         v_print("Combining outputs...", verbose)
 
         combined_data = {}

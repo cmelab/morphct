@@ -11,6 +11,19 @@ hbar = 1.05457173e-34  # m^{2} kg s^{-1}
 
 
 def box_points(box):
+    """Arrange the corner coordinates such that following them draws a cube.
+
+    Parameters
+    ----------
+    box : numpy.ndarray
+        Box array containing [Lx, Ly, Lz]
+
+    Returns
+    -------
+    numpy.ndarray (16,3)
+        xyz coordinates of the box corners in order such that if a line is drawn
+        between each point in order it draws a cube.
+    """
     dims = np.array([(-i / 2, i / 2) for i in box / 10])
     corners = [
         (dims[0, i], dims[1, j], dims[2, k])
@@ -22,6 +35,22 @@ def box_points(box):
 
 
 def v_print(string, verbosity, v_level=0, filename=None):  # pragma: no cover
+    """Print based on verbosity level.
+
+    If verbosity is greater than v_level, v_print will print.
+
+    Parameters
+    ----------
+    string : str
+        The string to print.
+    verbosity : int
+        The current verbosity level
+    v_level : int, default 0
+        The level above which string should print
+    filename : path, default None
+        Path to a file where the vprint will be written instad of printed to
+        stdout. If None is given, v_print prints to stdout.
+    """
     if verbosity > v_level:
         if filename is None:
             print(string)
@@ -31,6 +60,25 @@ def v_print(string, verbosity, v_level=0, filename=None):  # pragma: no cover
 
 
 def time_units(elapsed_time, precision=2):
+    """Convert elapsed time in seconds to its largest unit.
+
+    Example
+    -------
+    >>> time_units(12345)
+    '3.43 hours'
+
+    Parameters
+    ----------
+    elapsed_time : float
+        Elapsed time in seconds
+    precision : int, default 2
+        Number of values after decimal place to display.
+
+    Returns
+    -------
+    str
+        Elapsed time formatted as a string
+    """
     if elapsed_time < 60:
         time_units = "seconds"
     elif elapsed_time < 3600:
@@ -46,10 +94,21 @@ def time_units(elapsed_time, precision=2):
 
 
 def parallel_sort(list1, list2):
-    """
-    Sort a pair of lists by the first list in ascending order.
-    (e.g., given mass and position, it will sort by mass and return lists
-    such that mass[i] still corresponds to position[i])
+    """Sort a pair of lists by the first list in ascending order.
+
+    For example, given lists of mass and position, it will sort by mass and
+    return lists such that mass[i] still corresponds to position[i]
+
+    Parameters
+    ----------
+    list1 : list
+        The list to be sorted by
+    list2 : list
+        Another list which will be rearranged to maintain order with list1
+
+    Returns
+    -------
+    list of lists
     """
     types = [None, None]
 
@@ -82,6 +141,35 @@ def get_hop_rate(
     vrh=1.0,
     boltz=False,
 ):
+    """Get the hopping rate.
+
+    Parameters
+    ----------
+    lambd : float
+        The reorganization energy in eV.
+    ti : float
+        The transfer integral between the chromophores in eV.
+    delta_e : float
+        The energy difference between the frontier orbitals of the chromophores
+        in eV.
+    prefactor : float
+        A prefactor to the rate equation.
+    temp : float
+        The temperature in Kelvin.
+    use_vrh : bool, default False
+        Whether to use variable-range hopping.
+    rij : float, default 0.0
+        The distance between the chromophores in Angstroms. (only used with VRH)
+    vrh : float, default 1.0
+        A cutoff distance in Angstroms. (only used with VRH)
+    boltz : bool, default False
+        Whether to apply a simple Boltzmann energy penalty.
+
+    Returns
+    -------
+    float
+        The hopping rate in inverse seconds.
+    """
     # Based on the input parameters, can make this the semiclassical Marcus
     # Hopping Rate Equation, or a more generic Miller Abrahams-based hop
     # Firstly, to prevent divide-by-zero errors:
@@ -117,6 +205,29 @@ def get_event_tau(
     log_file=None,
     verbose=0,
 ):
+    """Get the time an event would take.
+
+    Parameters
+    ----------
+    rate : float
+        The rate in inverse seconds
+    slowest : float, default None
+        The slowest allowed time. (Only used if max_attempts is not None.)
+    fastest : float, default None
+        The fastest allowed time. (Only used if max_attempts is not None.)
+    max_attempts : int, default None
+        Number of attempts allowed to obtain a time between slowest and fastest.
+    log_file : path, default None
+        Path to a file to which to log output. If None is given, output is
+        printed to stdout.
+    verbose : int, default 0
+        The verbosity level.
+
+    Returns
+    -------
+    float
+        The time in seconds the event would take given its rate.
+    """
     if rate == 0:
         # If rate == 0, then make the hopping time extremely long
         return 1e99
@@ -151,15 +262,8 @@ def get_event_tau(
     return tau
 
 
-# TODO delete?
-# functions below here do not seem to be used
-
-
 def find_axis(atom1, atom2, normalize=True):
-    """
-    This function determines the normalized vector from the location of
-    atom1 to atom2.
-    """
+    """Find normalized vector from atom1 to atom2."""
     sep = atom2 - atom1
     if normalize is True:
         norm = np.linalg.norm(sep)
@@ -167,71 +271,3 @@ def find_axis(atom1, atom2, normalize=True):
             return sep
         return sep / norm
     return sep
-
-
-def get_coords_normvec(coords):  # pragma: no cover
-    AB = coords[1] - coords[0]
-    AC = coords[2] - coords[0]
-    return np.cross(AB, AC) / np.linalg.norm(normal)
-
-
-def get_rotation_matrix(vector1, vector2):  # pragma: no cover
-    """
-    This function returns the rotation matrix around the origin that maps
-    vector1 to vector 2
-    """
-    cross_product = np.cross(vector1, vector2)
-    sin_angle = np.sqrt(np.sum(cross_product ** 2))
-    cos_angle = np.dot(vector1, vector2)
-    skew_matrix = np.array(
-        [
-            [0, -cross_product[2], cross_product[1]],
-            [cross_product[2], 0, -cross_product[0]],
-            [-cross_product[1], cross_product[0], 0],
-        ]
-    )
-    skew_matrix_squared = skew_matrix @ skew_matrix
-    rot_matrix = (
-        np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-        + skew_matrix
-        + skew_matrix_squared * ((1 - cos_angle) / (sin_angle ** 2))
-    )
-    return rot_matrix
-
-
-def get_nprocs():  # pragma: no cover
-    # Determine the number of available processors, either by querying the
-    # SLURM_NPROCS environment variable, or by using multiprocessing to count
-    # the number of visible CPUs.
-    try:
-        procs = int(os.environ.get("SLURM_NPROCS"))
-    except TypeError:
-        # Was not loaded using SLURM, so use all physical processors
-        procs = mp.cpu_count()
-    return procs
-
-
-def get_FRET_hop_rate(
-    prefactor, lifetime, r_F, rij, delta_e, temp
-):  # pragma: no cover
-    # Foerster Transport Hopping Rate Equation
-    # The prefactor included here is a bit of a bodge to try and get the
-    # mean-free paths of the excitons more in line with the 5nm of experiment.
-    # Possible citation: 10.3390/ijms131217019 (they do not do the simulation
-    # they just point out some limitations of FRET which assumes point-dipoles
-    # which does not necessarily work in all cases)
-    if delta_e <= 0:
-        boltz = 1
-    else:
-        boltz = np.exp(-elem_chrg * delta_e / (k_B * temp))
-    k_FRET = (prefactor / lifetime) * (r_F / rij) ** 6 * boltz
-    return k_FRET
-
-
-def get_miller_abrahams_hop_rate(
-    prefactor, separation, radius, delta_e, temp
-):  # pragma: no cover
-    k = prefactor * np.exp(-2 * separation / radius)
-    if delta_e > 0:
-        k *= np.exp(-delta_e / (k_B * temp))
-    return k

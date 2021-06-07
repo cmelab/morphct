@@ -17,12 +17,88 @@ from morphct import helper_functions as hf
 
 
 class Chromophore:
-    """
+    """An object for tracking infromation related to the chromophore.
+
+    Chromphore refers to the electronically active part of the molecule where a
+    charge is expected to reside.
+    This class keeps track of what particles from the simulation compose each
+    chromophore, the chromphore's neighbors, and the energy values of each
+    chromophore and chromophore pair.
+
+    Parameters
+    ----------
+    chromo_id : int
+        Index of this chromophore in the system.
+    snap : gsd.hoomd.Snapshot
+        Atomistic simulation snapshot from a GSD file. It is expected that the
+        lengths in this file have been converted to Angstroms.
+    atom_ids : numpy.ndarray of int
+        Snapshot indices of the particles which belong to this chromophore.
+    species : str
+        Chromophore species ('donor' or 'acceptor')
+    conversion_dict : dictionary
+        A dictionary that maps the atom type to its element. e.g., `{'c3': C}`
+        An instance that maps AMBER types to their element can be found in
+        `amber_dict`.
+    reorganization_energy : float, default 0.3064
+        Energy required to "reorganize" the system structure from the final to
+        initial coordinates. (what paper did this default come from? TODO EJ)
+    vrh_delocalization : float, default 2e-10
+        Variable-range hopping (rate? where did default come from?) TODO EJ
+
     Attributes
     ----------
+    id : int
+        Index of this chromophore in the system.
+    species : str
+        Chromophore species ('donor' or 'acceptor')
+    reorganization_energy : float
+        Energy required to "reorganize" the system structure from the final to
+        initial coordinates.
+    vrh_delocalization : float
+        Variable-range hopping (rate?) TODO EJ
+    atom_ids : numpy.ndarray of int
+        Snapshot indices of the particles which belong to this chromophore.
+    n_atoms : int
+        The number of atoms in the chromophore.
+    qcc_input : str
+        The input for the MINDO3 quantum chemical calculation run in pySCF. See
+        https://pyscf.org/quickstart.html for more information.
+    neighbors : list of (int, numpy.ndarray(size=3))
+        Each list entry is the chromophore index of the neighbor followed by the
+        relative image of that neighbor. On initialization this is an empty
+        list, values are set after running `set_neighbors_voronoi`.
+    dissociation_neighbors : list
+        TODO EJ I don't see that this is used anywhere... I think it can be
+        removed?
+    homo : float
+        HOMO energy value in eV for this chromophore. On initialization this
+        is set to None, values are set after running `set_energyvalues`.
+    homo_1 : float
+        HOMO-1 energy value in eV for this chromophore. On initialization this
+        is set to None, values are set after running `set_energyvalues`.
+    lumo : float
+        LUMO energy value in eV for this chromophore. On initialization this
+        is set to None, values are set after running `set_energyvalues`.
+    lumo_1 : float
+        LUMO+1 energy value in eV for this chromophore. On initialization this
+        is set to None, values are set after running `set_energyvalues`.
+    neighbors_delta_e : list of floats
+        List of the differences in the frontier orbital energy values in eV
+        between this chromophore and its neighbors. If the chromphore is an
+        acceptor, the LUMO is used as the frontier orbital; if a donor, the HOMO
+        is used. The indices are the same as in `neighbors`. On initialization
+        this is an empty list, values are set after running `set_energyvalues`.
+    neighbors_ti : list of floats
+        List of the transfer integral energy in eV between this chromophore and
+        its neighbors. See `calculate_ti` for more information. The indices are
+        the same as in `neighbors`. On initialization this is an empty list,
+        values are set after running `set_energyvalues`.
 
     Methods
     -------
+    get_MO_energy
+        Get the frontier orbital energy for this chromophore.
     """
 
     def __init__(
@@ -35,11 +111,6 @@ class Chromophore:
         reorganization_energy=0.3064,
         vrh_delocalization=2e-10,
     ):
-        """
-        Parameters
-        ----------
-
-        """
         self.id = chromo_id
         if species.lower() not in ["donor", "acceptor"]:
             raise TypeError("Species must be either donor or acceptor")
@@ -57,11 +128,12 @@ class Chromophore:
         # Now to create a load of placeholder parameters to update later when we
         # have the full list/energy levels.
         # The self.neighbors list contains one element for each chromophore
-        # within parameterDict['maximum_hop_distance'] of this one (including
-        # periodic boundary conditions). Its format is
+        # within `d_cut` passed to `set_neighbors_voronoi` of this one
+        # (considering periodic boundary conditions). Its format is
         # [[neighbor1_ID, relative_image_of_neighbor1],...]
         self.neighbors = []
         self.dissociation_neighbors = []
+
         # The molecular orbitals of this chromophore have not yet been
         # calculated, but they will simply be floats.
         self.homo = None
@@ -70,13 +142,14 @@ class Chromophore:
         self.lumo_1 = None
 
         # The neighbor_delta_e and neighbor_ti are lists where each element
-        # describes the different in important molecular orbital or transfer
+        # describes the difference in important molecular orbitals or transfer
         # integral between this chromophore and each neighbor. The list indices
         # here are the same as in self.neighbors for coherence.
         self.neighbors_delta_e = []
         self.neighbors_ti = []
 
     def __repr__(self):
+        """Return the Chromophore representation."""
         return "Chromophore {} ({}): {} atoms at {:.3f} {:.3f} {:.3f}".format(
             self.id, self.species, self.n_atoms, *self.center
         )
@@ -96,33 +169,54 @@ class Chromophore:
         self.image = img
 
     def get_MO_energy(self):
-        """
-        Parameters
-        ----------
+        """Get the frontier molecular orbital energy for this chromophore.
+
+        If the chromphore is an acceptor, the LUMO energy is returned. If the
+        chromphore is a donor, the HOMO energy is returned.
 
         Returns
         -------
-
+        float
+            MO energy in eV
         """
         if self.species == "acceptor":
             return self.lumo
         return self.homo
 
 
-def get_chromo_ids_smiles(snap, smarts_str, conv_dict, ff=None, steps=100):
-    """
+def get_chromo_ids_smiles(snap, smarts_str, conv_dict):
+    """Get the atom indices in a snapshot associated with a SMARTS string.
+
+    This function can be used to determine the atom indices for each
+    chromophore. SMARTS matching depends on the molecular structures making
+    chemical sense (e.g., aromatic structures are planar, etc). Often snapshots
+    from molecular simulations based on classical methods (e.g., MC, MD) may
+    have distortions that are chemically unphysical, in which case this function
+    may not find all chromophores. A solution is to use this function on a
+    snapshot of the initial frame of the trajectory, and then apply these
+    indices to a later frame.
+
     Parameters
     ----------
-    ff:
-    http://open-babel.readthedocs.io/en/latest/Forcefields/Overview.html
+    snap : gsd.hoomd.Snapshot
+        Atomistic simulation snapshot from a GSD file. It is expected that the
+        lengths in this file have been converted to Angstroms.
+    smarts_str : str
+        SMARTS string used to find the atom indices.
+    conversion_dict : dictionary
+        A dictionary that maps the atom type to its element. e.g., `{'c3': C}`
+        An instance that maps AMBER types to their element can be found in
+        `amber_dict`.
 
     Returns
     -------
-    list:
-        the atom ids
-    or
-    compound: pybel.Molecule
-        if no choms found
+    list of numpy.ndarray of int
+        atom indices of each SMARTS match
+
+    Note
+    ----
+    If no matches are found, a warning is raised and the pybel.Molecule object
+    is returned for debugging.
     """
     box = snap.configuration.box[:3]
     unwrapped_positions = snap.particles.position + snap.particles.image * box
@@ -144,13 +238,6 @@ def get_chromo_ids_smiles(snap, smarts_str, conv_dict, ff=None, steps=100):
     mol.PerceiveBondOrders()
     mol.SetAromaticPerceived()
 
-    # Energy minimization may be needed to find some matches
-    if ff is not None:
-        uff = openbabel.OBForceField.FindForceField(ff)
-        uff.Setup(mol)
-        uff.ConjugateGradients(steps)
-        uff.UpdateCoordinates(mol)
-
     pybelmol = pybel.Molecule(mol)
 
     smarts = pybel.Smarts(smarts_str)
@@ -167,13 +254,32 @@ def get_chromo_ids_smiles(snap, smarts_str, conv_dict, ff=None, steps=100):
 
 
 def set_neighbors_voronoi(chromo_list, snap, conversion_dict, d_cut=10):
-    """
+    """Set the chromophore neighbors using voronoi analysis.
+
+    See https://freud.readthedocs.io/en/latest/modules/locality.html#freud.locality.Voronoi
+    for more information.
+
     Parameters
     ----------
+    chromo_list : list of Chromphore
+        List of the Chromophore objects between which to calculate neighbors.
+    snap : gsd.hoomd.Snapshot
+        Atomistic simulation snapshot from a GSD file. It is expected that the
+        lengths in this file have been converted to Angstroms.
+    conversion_dict : dictionary
+        A dictionary that maps the atom type to its element. e.g., `{'c3': C}`
+        An instance that maps AMBER types to their element can be found in
+        `amber_dict`.
+    d_cut : float, default 10
+        The distance cutoff for neighbors.
 
     Returns
     -------
-
+    qcc_pairs : list of ((int,int), str)
+        The information needed for calculating the pair energies. The first part
+        of each entry is the pair indices followed by the input for the MINDO3
+        quantum chemical calculation run in pySCF for the chromophore pairs.
+        See https://pyscf.org/quickstart.html for more information.
     """
     voronoi = freud.locality.Voronoi()
     freudbox = freud.box.Box(*snap.configuration.box)

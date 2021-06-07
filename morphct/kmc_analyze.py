@@ -20,6 +20,17 @@ p3 = None
 
 
 def split_carriers(combined_data):
+    """
+
+    Parameters
+    ----------
+    combined_data : dict
+
+
+    Returns
+    -------
+
+    """
     hole_inds = np.where(np.array(combined_data["c_type"]) == "hole")[0]
     elec_inds = np.where(np.array(combined_data["c_type"]) == "electron")[0]
     hole_data = {}
@@ -35,6 +46,15 @@ def split_carriers(combined_data):
 
 
 def get_times_msds(carrier_data):
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
     total = 0
     total_averaged = 0
     squared_disps = defaultdict(list)
@@ -72,6 +92,15 @@ def get_times_msds(carrier_data):
 
 
 def plot_displacement_dist(carrier_data, c_type, path):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
     plt.figure()
     plt.hist(np.array(carrier_data["displacement"]) * 0.1, bins=60, color="b")
     plt.xlabel(f"{c_type.capitalize()} Displacement (nm)")
@@ -84,6 +113,15 @@ def plot_displacement_dist(carrier_data, c_type, path):  # pragma: no cover
 
 
 def plot_cluster_size_dist(clusters, path):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
     species = ["donor", "acceptor"]
     for i, cl in enumerate(clusters):
         if cl is not None:
@@ -109,13 +147,15 @@ def plot_cluster_size_dist(clusters, path):  # pragma: no cover
 
 
 def get_connections(chromo_list, carrier_history, box):
-    """
-    Function to create an array of with a starting point, a vector
-    and the number of hops that occured.
-    Requires:
-        chromo_list,
-        carrier_history
-    Returns:
+    """Create array of starting index, vector, and number of hops that occured.
+
+    Parameters
+    ----------
+    chromo_list,
+    carrier_history
+
+    Returns
+    -------
         7xN array
     """
     # Create an "empty" array to store data.
@@ -152,6 +192,14 @@ def get_connections(chromo_list, carrier_history, box):
 def plot_connections(
     chromo_list, carrier_history, c_type, path
 ):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     # A complicated function that shows connections between carriers in 3D
     # that carriers prefer to hop between.
     # Connections that are frequently used are highlighted in black, whereas
@@ -224,6 +272,14 @@ def plot_connections(
 
 
 def calc_mobility(lin_fit_X, lin_fit_Y, time_err, msd_err, temp):
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     # YVals have a std error avmsdError associated with them
     # XVals have a std error avTimeError assosciated with them
     numerator = lin_fit_Y[-1] - lin_fit_Y[0]
@@ -252,6 +308,14 @@ def calc_mobility(lin_fit_X, lin_fit_Y, time_err, msd_err, temp):
 def plot_msd(
     times, msds, time_stderr, msd_stderr, c_type, temp, path
 ):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     fit_X = np.linspace(np.min(times), np.max(times), 100)
     gradient, intercept, r_val, p_val, std_err = linregress(times, msds)
     print(f"Standard Error {std_err}")
@@ -301,6 +365,14 @@ def plot_msd(
 
 
 def get_anisotropy(xyzs):
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     # First calculate the `center of position' for the particles
     center = np.mean(xyzs, axis=0)
     # First calculate the gyration tensor:
@@ -325,6 +397,14 @@ def get_anisotropy(xyzs):
 def plot_hop_vectors(
     carrier_data, chromo_list, snap, c_type, path
 ):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     from matplotlib import colors
     import matplotlib.cm as cmx
 
@@ -423,6 +503,14 @@ def plot_hop_vectors(
 
 
 def plot_anisotropy(carrier_data, c_type, three_d, path):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     box = carrier_data["box"][0]
     xyzs = []
     # Get the indices of the carriers that travelled the furthest
@@ -478,6 +566,14 @@ def plot_anisotropy(carrier_data, c_type, three_d, path):  # pragma: no cover
 def plot_temp_progression(
     temp, mobility, mob_err, anisotropy, c_type, path
 ):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     plt.gcf()
     plt.clf()
     xvals = temp
@@ -504,6 +600,14 @@ def plot_temp_progression(
 
 
 def get_lambda_ij(chromo_length):
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     # The equation for the internal reorganisation energy was obtained from
     # the data given in
     # Johansson, E and Larsson, S; 2004, Synthetic Metals 144: 183-191.
@@ -520,10 +624,26 @@ def get_lambda_ij(chromo_length):
 
 
 def gaussian(x, a, x0, sigma):
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     return a * np.exp(-(x - x0) ** 2 / (2 * sigma ** 2))
 
 
 def gauss_fit(data):
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     mean = np.mean(data)
     std = np.std(data)
     hist, bin_edges = np.histogram(data, bins=100)
@@ -539,6 +659,14 @@ def gauss_fit(data):
 def plot_neighbor_hist(
     chromo_list, chromo_mol_id, box, sepcut, path
 ):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     seps_donor = []
     seps_acceptor = []
     for i, ichromo in enumerate(chromo_list):
@@ -586,6 +714,14 @@ def plot_neighbor_hist(
 def plot_orientation_hist(
     chromo_list, chromo_mol_id, orientations, ocut, path
 ):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     orientations_donor = []
     orientations_acceptor = []
     for i, ichromo in enumerate(chromo_list):
@@ -636,6 +772,14 @@ def plot_orientation_hist(
 
 
 def create_cutoff_dict(sepcut, ocut, ticut, freqcut):
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     cutoff_dict = {
         "separation": sepcut,
         "orientation": ocut,
@@ -646,6 +790,14 @@ def create_cutoff_dict(sepcut, ocut, ticut, freqcut):
 
 
 def get_clusters(chromo_list, snap, rmax=None):
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     clusters = []
     box = snap.configuration.box
     species = ["donor", "acceptor"]
@@ -680,6 +832,14 @@ def get_clusters(chromo_list, snap, rmax=None):
 
 
 def get_orientations(chromo_list, snap):
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     orientations = []
     for chromo in chromo_list:
         positions = snap.particles.position[chromo.atom_ids]
@@ -693,6 +853,14 @@ def get_orientations(chromo_list, snap):
 
 
 def get_plane(positions):
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     ## See https://goo.gl/jxuhvJ for details on this methodology.
     vec1 = hf.find_axis(positions[0], positions[1])
     vec2 = hf.find_axis(positions[0], positions[2])
@@ -700,6 +868,14 @@ def get_plane(positions):
 
 
 def update_cluster(atom_ID, cluster_list, neighbor_dict): # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     try:
         for neighbor in neighbor_dict[atom_ID]:
             if cluster_list[neighbor] > cluster_list[atom_ID]:
@@ -720,6 +896,12 @@ def update_cluster(atom_ID, cluster_list, neighbor_dict): # pragma: no cover
 def cluster_tcl_script(clusters, large_cluster, path): # pragma: no cover
     """
     Create a tcl script for each identified cluster.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
     """
     # Obtain the IDs of the cluster sizes, sorted by largest first
     print("Sorting the clusters by size...")
@@ -788,6 +970,14 @@ def get_lists_for_3d_clusters(
         colors,
         large_cluster
 ): # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     data = []
     species = ["donor", "acceptor"]
     for i, cl in enumerate(clusters):
@@ -824,6 +1014,14 @@ def get_lists_for_3d_clusters(
 def plot_clusters_3D(
     chromo_list, clusters, box, generate_tcl, path
 ):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     fig = plt.figure()
     ax = p3.Axes3D(fig)
     colors = ["r", "g", "b", "c", "m", "y", "k"]
@@ -860,6 +1058,14 @@ def plot_clusters_3D(
 
 
 def plot_energy_levels(chromo_list, data_dict, path):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     homo_levels = []
     lumo_levels = []
     donor_delta_eij = []
@@ -942,6 +1148,14 @@ def plot_energy_levels(chromo_list, data_dict, path):  # pragma: no cover
 def plot_delta_eij(
     delta_eij, gauss_bins, fit_args, species, lambda_ij, path
 ):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     plt.figure()
     n, bins, patches = plt.hist(
         delta_eij,
@@ -978,6 +1192,14 @@ def plot_mixed_hopping_rates(
     koopmans=None,
     boltz=False,
 ):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     # Create all the empty lists we need
     hop_types = ["intra", "inter"]
     hop_targets = ["c", "m"]
@@ -1191,6 +1413,14 @@ def plot_mixed_hopping_rates(
 def plot_stacked_hist_rates(
     data1, data2, labels, species, path
 ):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     plt.figure()
     n, bins, patches = plt.hist(
         [data1, data2],
@@ -1216,6 +1446,14 @@ def plot_stacked_hist_rates(
 def plot_stacked_hist_tis(
     data1, data2, labels, species, cutoff, path
 ):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     plt.figure()
     n, bins, patches = plt.hist(
         [data1, data2],
@@ -1239,6 +1477,14 @@ def plot_stacked_hist_tis(
 
 
 def write_csv(data_dict, path): # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     filepath = os.path.join(path, "results.csv")
     with open(filepath, "w") as f:
         w = csv.writer(f)
@@ -1251,6 +1497,14 @@ def write_csv(data_dict, path): # pragma: no cover
 def get_dist_cutoff(
     bin_centers, dist, min_i=None, max_i=None, at_least=100, log=False
 ):
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     try:
         if min_i is not None:
             # Looking for minima
@@ -1303,6 +1557,14 @@ def get_dist_cutoff(
 
 
 def plot_ti_hist(chromo_list, chromo_mol_id, ticut, path):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     # ti_dist [[DONOR], [ACCEPTOR]]
     ti_intra = [[], []]
     ti_inter = [[], []]
@@ -1360,6 +1622,14 @@ def plot_ti_hist(chromo_list, chromo_mol_id, ticut, path):  # pragma: no cover
 def plot_frequency_dist(
     c_type, carrier_history, freqcut, path
 ):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     c_ind = ["hole", "electron"].index(c_type)
     nonzero = list(zip(*carrier_history.nonzero()))
     frequencies = []
@@ -1397,6 +1667,14 @@ def plot_frequency_dist(
 
 
 def plot_net_frequency_dist(c_type, carrier_history, path):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     nonzero = list(zip(*carrier_history.nonzero()))
     frequencies = []
     for i, j in nonzero:
@@ -1424,6 +1702,14 @@ def plot_net_frequency_dist(c_type, carrier_history, path):  # pragma: no cover
 def plot_discrepancy_frequency_dist(
     c_type, carrier_history, path
 ):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     nonzero = list(zip(*carrier_history.nonzero()))
     frequencies = []
     net_equals_total = 0
@@ -1462,6 +1748,14 @@ def plot_discrepancy_frequency_dist(
 def plot_mobility_msd(
     c_type, times, msds, time_stderr, msd_stderr, temp, path
 ):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     # Create the first figure that will be replotted each time
     plt.figure()
     times, msds = hf.parallel_sort(times, msds)
@@ -1481,6 +1775,14 @@ def plot_mobility_msd(
 def carrier_plots(
     c_type, carrier_data, chromo_list, snap, freqcut, three_d, temp, path
 ): # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     print(f"Considering the transport of {c_type}...")
     if c_type == "hole":
         carrier_history = carrier_data["hole_history"]
@@ -1540,6 +1842,14 @@ def main(
     koopmans=None,
     boltz=False,
 ):  # pragma: no cover
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
     # Load the matplotlib backend and the plotting subroutines
     global plt
     global p3
