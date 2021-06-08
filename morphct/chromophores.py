@@ -41,10 +41,12 @@ class Chromophore:
         An instance that maps AMBER types to their element can be found in
         `amber_dict`.
     reorganization_energy : float, default 0.3064
-        Energy required to "reorganize" the system structure from the final to
-        initial coordinates. (what paper did this default come from? TODO EJ)
+        Energy (in eV) required to "reorganize" the system structure from the
+        final to initial coordinates. The default value is for P3HT and came
+        from DOI:10.1016/j.synthmet.2004.03.005
     vrh_delocalization : float, default 2e-10
-        Variable-range hopping (rate? where did default come from?) TODO EJ
+        Variable-range hopping modifier in meters. Hopping rates are scaled by
+        exp(r/vrh_delocalization) when `use_vrh` is True.
 
     Attributes
     ----------
@@ -56,7 +58,8 @@ class Chromophore:
         Energy required to "reorganize" the system structure from the final to
         initial coordinates.
     vrh_delocalization : float
-        Variable-range hopping (rate?) TODO EJ
+        Variable-range hopping modifier in meters. Hopping rates are scaled by
+        exp(r/vrh_delocalization) when `use_vrh` is True.
     atom_ids : numpy.ndarray of int
         Snapshot indices of the particles which belong to this chromophore.
     n_atoms : int
@@ -68,9 +71,6 @@ class Chromophore:
         Each list entry is the chromophore index of the neighbor followed by the
         relative image of that neighbor. On initialization this is an empty
         list, values are set after running `set_neighbors_voronoi`.
-    dissociation_neighbors : list
-        TODO EJ I don't see that this is used anywhere... I think it can be
-        removed?
     homo : float
         HOMO energy value in eV for this chromophore. On initialization this
         is set to None, values are set after running `set_energyvalues`.
@@ -132,7 +132,6 @@ class Chromophore:
         # (considering periodic boundary conditions). Its format is
         # [[neighbor1_ID, relative_image_of_neighbor1],...]
         self.neighbors = []
-        self.dissociation_neighbors = []
 
         # The molecular orbitals of this chromophore have not yet been
         # calculated, but they will simply be floats.
@@ -290,7 +289,9 @@ def set_neighbors_voronoi(chromo_list, snap, conversion_dict, d_cut=10):
     qcc_pairs = []
     neighbors = []
     for (i, j) in voronoi.nlist:
-        if (i, j) not in neighbors and (j, i) not in neighbors:
+        if i == j:
+            pass
+        elif (i, j) not in neighbors and (j, i) not in neighbors:
             chromo_i = chromo_list[i]
             chromo_j = chromo_list[j]
             centers = []

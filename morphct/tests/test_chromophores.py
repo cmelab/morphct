@@ -25,7 +25,6 @@ class TestChromophores(BaseTest):
         assert np.allclose(
             chromo.center, np.array([8.53228682, -27.96646586, -35.07523658])
         )
-        assert chromo.neighbors == chromo.dissociation_neighbors == []
         assert chromo.neighbors_ti == chromo.neighbors_delta_e == []
         assert chromo.homo == chromo.homo_1 == None
         assert chromo.lumo == chromo.lumo_1 == None

@@ -62,7 +62,7 @@ class TestKMC(BaseTest):
         jobs = get_jobslist(lts, n_holes=10, n_elec=10, nprocs=n, seed=42)
 
         assert len(jobs) == n
-        assert jobs[0][0] == [9, 1e-13, 'electron']
+        assert jobs[0][0] == (9, 1e-13, 'electron')
 
     def test_runsinglekmc(self, tmpdir, p3ht_chromo_list_energies, p3ht_snap):
         from morphct.mobility_kmc import run_single_kmc

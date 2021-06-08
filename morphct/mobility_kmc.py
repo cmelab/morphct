@@ -111,7 +111,8 @@ class Carrier:
     use_vrh : bool
         Whether to use variable-range hopping.
     vrh_delocalization : float
-        The variable-range hopping rate (?) TODO EJ
+        Variable-range hopping modifier in meters. Hopping rates are scaled by
+        exp(r/vrh_delocalization) when `use_vrh` is True.
     hopping_prefactor : float
         A prefactor to the rate equation.
 

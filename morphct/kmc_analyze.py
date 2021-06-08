@@ -20,16 +20,18 @@ p3 = None
 
 
 def split_carriers(combined_data):
-    """
+    """Split dictionary based on carrier type.
 
     Parameters
     ----------
     combined_data : dict
-
+        The data for both carrier types.
 
     Returns
     -------
-
+    dict, dict
+        combined_data split into two dicts based on carrier type:
+        hole_data and elec_data
     """
     hole_inds = np.where(np.array(combined_data["c_type"]) == "hole")[0]
     elec_inds = np.where(np.array(combined_data["c_type"]) == "electron")[0]
@@ -46,14 +48,18 @@ def split_carriers(combined_data):
 
 
 def get_times_msds(carrier_data):
-    """
+    """Get the lifetimes and mean squared displacements of the carriers.
 
     Parameters
     ----------
+    carrier_data : dict
+        The data for one carrier type.
 
     Returns
     -------
-
+    list, list, list, list
+        The carrier lifetimes in seconds, the mean squared displacement in
+        meters, and the standard errors of these values, respectively.
     """
     total = 0
     total_averaged = 0
@@ -92,14 +98,16 @@ def get_times_msds(carrier_data):
 
 
 def plot_displacement_dist(carrier_data, c_type, path):  # pragma: no cover
-    """
+    """Plot the displacement distribution of a carrier type.
 
     Parameters
     ----------
-
-    Returns
-    -------
-
+    carrier_data : dict
+        The data for one carrier type.
+    c_type : str
+        The carrier type, "electron" or "hole".
+    path : path
+        Path to directory where to save the plot.
     """
     plt.figure()
     plt.hist(np.array(carrier_data["displacement"]) * 0.1, bins=60, color="b")
@@ -113,14 +121,14 @@ def plot_displacement_dist(carrier_data, c_type, path):  # pragma: no cover
 
 
 def plot_cluster_size_dist(clusters, path):  # pragma: no cover
-    """
+    """Plot the size distribution of the clusters.
 
     Parameters
     ----------
-
-    Returns
-    -------
-
+    clusters : list of freud.cluster.Cluster
+        The clusters in the simulation.
+    path : path
+        Path to directory where to save the plot.
     """
     species = ["donor", "acceptor"]
     for i, cl in enumerate(clusters):
@@ -151,12 +159,20 @@ def get_connections(chromo_list, carrier_history, box):
 
     Parameters
     ----------
-    chromo_list,
-    carrier_history
+    chromo_list : list of Chromophore
+        The chromophores in the simulation.
+    carrier_history : scipy.sparse.lil_matrix
+        The carrier history.
+    box : numpy.ndarray, shape (3,)
+        The lengths of the box vectors in Angstroms. Box is assumed to be
+        orthogonal.
 
     Returns
     -------
-        7xN array
+    numpy.ndarray (7,N)
+        Array consists of chromo center (x,y,z), hop vector (x,y,z), and the
+        number of times the carrier has travelled that path by number of
+        chromophores.
     """
     # Create an "empty" array to store data.
     connections = np.zeros(7)
@@ -192,13 +208,20 @@ def get_connections(chromo_list, carrier_history, box):
 def plot_connections(
     chromo_list, carrier_history, c_type, path
 ):  # pragma: no cover
-    """
+    """Plot the paths of the carriers.
 
     Parameters
     ----------
-
-    Returns
-    -------
+    chromo_list : list of Chromophore
+        The chromophores in the simulation.
+    carrier_history : scipy.sparse.lil_matrix
+        The carrier history.
+    c_type : str
+        Carrier species, "electron" or "hole".
+    path : path
+        Path to directory where to save the plot.
+    path : path
+        Path to directory where to save the plot.
     """
     # A complicated function that shows connections between carriers in 3D
     # that carriers prefer to hop between.
@@ -264,26 +287,37 @@ def plot_connections(
     fig.title = f"{species} ({c_type.capitalize()}) Network"
 
     filename = f"3d_{c_type}_network.png"
-    filepath = (os.path.join(path, filename),)
+    filepath = os.path.join(path, filename)
     plt.savefig(filepath, bbox_inches="tight", dpi=300)
     print(f"\tFigure saved as {filename}")
-
     plt.clf()
 
 
-def calc_mobility(lin_fit_X, lin_fit_Y, time_err, msd_err, temp):
-    """
+def calc_mobility(fit_time, fit_msd, time_err, msd_err, temp):
+    """Calculate the mobility of the simulation.
 
     Parameters
     ----------
+    fit_time : numpy.ndarray
+        Time values in seconds from linear fit of msds vs. times.
+    fit_msd : numpy.ndarray
+        MSD values in meters from linear fit of msds vs. times.
+    time_err : float
+        The error of the lifetime values.
+    msd_err : float
+        The error of the MSD values.
+    temp : float
+        Simulation temperature in Kelvin.
 
     Returns
     -------
+    mobility, mob_error : float, float
+        The mobility and its standard error in centimeters^2/(Volt second).
     """
     # YVals have a std error avmsdError associated with them
     # XVals have a std error avTimeError assosciated with them
-    numerator = lin_fit_Y[-1] - lin_fit_Y[0]
-    denominator = lin_fit_X[-1] - lin_fit_X[0]
+    numerator = fit_msd[-1] - fit_msd[0]
+    denominator = fit_time[-1] - fit_time[0]
 
     # Diffusion coeff D = d(MSD)/dt * 1/2n (n = 3 = number of dimensions)
     # Ref: Carbone2014a (Carbone and Troisi)
@@ -308,25 +342,42 @@ def calc_mobility(lin_fit_X, lin_fit_Y, time_err, msd_err, temp):
 def plot_msd(
     times, msds, time_stderr, msd_stderr, c_type, temp, path
 ):  # pragma: no cover
-    """
+    """Plot the mean squared displacement and calculate the mobility.
 
     Parameters
     ----------
+    times : list of float
+        The carrier lifetimes in seconds.
+    msds : list of float
+        The carrier mean squared displacement in meters.
+    time_stderr : list of float
+        The standard error of the carrier lifetimes in seconds.
+    msd_stderr : list of float
+        The standard error of the carrier mean squared displacement in meters.
+    c_type : str
+        The carrier type, "electron" or "hole".
+    temp : float
+        Simulation temperature in Kelvin.
+    path : path
+        Path to directory where to save the plot.
 
     Returns
     -------
+    mobility, mob_error, r_val ** 2 : float, float, float
+        The mobility in centimeters^2/(Volt second), the standard error of the
+        mobility, and the r-squared value of the linear fit.
     """
-    fit_X = np.linspace(np.min(times), np.max(times), 100)
+    fit_time = np.linspace(np.min(times), np.max(times), 100)
     gradient, intercept, r_val, p_val, std_err = linregress(times, msds)
     print(f"Standard Error {std_err}")
     print(f"Fitting r_val = {r_val}")
-    fit_Y = (fit_X * gradient) + intercept
+    fit_msd = (fit_time * gradient) + intercept
     mobility, mob_error = calc_mobility(
-        fit_X, fit_Y, np.average(time_stderr), np.average(msd_stderr), temp
+        fit_time, fit_msd, np.average(time_stderr), np.average(msd_stderr), temp
     )
     plt.plot(times, msds)
     plt.errorbar(times, msds, xerr=time_stderr, yerr=msd_stderr)
-    plt.plot(fit_X, fit_Y, "r")
+    plt.plot(fit_time, fit_msd, "r")
     plt.xlabel("Time (s)")
     plt.ylabel(r"MSD (m$^{2}$)")
     plt.title(rf"$\mu_{{0, {c_type[0]}}}$ = {mobility:.3e} cm$^{2}$/Vs", y=1.1)
@@ -338,7 +389,7 @@ def plot_msd(
 
     plt.semilogx(times, msds)
     plt.errorbar(times, msds, xerr=time_stderr, yerr=msd_stderr)
-    plt.semilogx(fit_X, fit_Y, "r")
+    plt.semilogx(fit_time, fit_msd, "r")
     plt.xlabel("Time (s)")
     plt.ylabel(r"MSD (m$^{2}$)")
     plt.title(rf"$\mu_{{0, {c_type[0]}}}$ = {mobility:.3e} cm$^{2}$/Vs", y=1.1)
@@ -350,7 +401,7 @@ def plot_msd(
 
     plt.plot(times, msds)
     plt.errorbar(times, msds, xerr=time_stderr, yerr=msd_stderr)
-    plt.plot(fit_X, fit_Y, "r")
+    plt.plot(fit_time, fit_msd, "r")
     plt.xlabel("Time (s)")
     plt.ylabel(r"MSD (m$^{2}$)")
     plt.xscale("log")
@@ -365,13 +416,18 @@ def plot_msd(
 
 
 def get_anisotropy(xyzs):
-    """
+    """Calculate the carrier anisotropy.
 
     Parameters
     ----------
+    xyzs : numpy.ndarray
+        Center coordinates of the chromophores (unwrapped to account for the
+        periodic boundary) in nanometers.
 
     Returns
     -------
+    float
+        The anisotropy of the system.
     """
     # First calculate the `center of position' for the particles
     center = np.mean(xyzs, axis=0)
@@ -397,13 +453,20 @@ def get_anisotropy(xyzs):
 def plot_hop_vectors(
     carrier_data, chromo_list, snap, c_type, path
 ):  # pragma: no cover
-    """
+    """Plot 3D vectors representing each hop.
 
     Parameters
     ----------
-
-    Returns
-    -------
+    carrier_data : dict
+        The data for one carrier type.
+    chromo_list : list of Chromophore
+        The chromophores in the simulation.
+    snap : gsd.hoomd.Snapshot
+        The simulation snapshot.
+    c_type : str
+        The carrier type, "electron" or "hole".
+    path : path
+        Path to directory where to save the plot.
     """
     from matplotlib import colors
     import matplotlib.cm as cmx
@@ -503,13 +566,23 @@ def plot_hop_vectors(
 
 
 def plot_anisotropy(carrier_data, c_type, three_d, path):  # pragma: no cover
-    """
+    """Plot the anisotropy of the system.
 
     Parameters
     ----------
+    carrier_data : dict
+        The data for one carrier type.
+    c_type : str
+        The carrier type, "electron" or "hole".
+    three_d : bool
+        Whether to create 3D plots.
+    path : path
+        Path to directory where to save the plot.
 
     Returns
     -------
+    float
+        The anisotropy of the system.
     """
     box = carrier_data["box"][0]
     xyzs = []
@@ -518,7 +591,7 @@ def plot_anisotropy(carrier_data, c_type, three_d, path):  # pragma: no cover
     for i, pos in enumerate(carrier_data["current_position"][:1000]):
         image = carrier_data["image"][i]
         position = image * box + pos
-        xyzs.append(position / 10.0)
+        xyzs.append(position / 10.0) # A -> nm
 
     colors = ["b"] * len(xyzs)
     xyzs = np.array(xyzs)
@@ -563,57 +636,26 @@ def plot_anisotropy(carrier_data, c_type, three_d, path):  # pragma: no cover
     return anisotropy
 
 
-def plot_temp_progression(
-    temp, mobility, mob_err, anisotropy, c_type, path
-):  # pragma: no cover
-    """
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-    """
-    plt.gcf()
-    plt.clf()
-    xvals = temp
-    yvals = mobility
-    yerrs = mob_err
-    plt.xlabel("Temperature (Arb. U)")
-    plt.ylabel(r"Mobility (cm$^{2}$ / Vs)")
-    plt.errorbar(xvals, yvals, xerr=0, yerr=yerrs)
-    plt.yscale("log")
-    filename = f"mobility_{c_type}.png"
-    filepath = os.path.join(path, filename)
-    plt.savefig(filepath, dpi=300)
-    plt.clf()
-    print(f"\tFigure saved as {filename}")
-
-    plt.plot(temp, anisotropy, c="r")
-    plt.xlabel("Temperature (Arb. U)")
-    plt.ylabel(r"$\kappa$ (Arb. U)")
-    filename = f"anisotropy_{c_type}.png"
-    filepath = os.path.join(path, filename)
-    plt.savefig(filepath, dpi=300)
-    plt.clf()
-    print(f"\tFigure saved as {filename}")
-
-
 def get_lambda_ij(chromo_length):
-    """
+    """Get the reorganization energy of a chromophore based on its length.
+
+    The equation for the internal reorganisation energy was obtained from
+    the data given in
+        Johansson, E.; Larsson, S.; 2004, Synthetic Metals 144: 183-191.
+    And the external reorganisation energy was obtained from
+        Liu, T.; Cheung, D. L.; Troisi, A.; 2011, Phys. Chem. Chem. Phys. 13:
+        21461-21470
 
     Parameters
     ----------
+    chromo_length : int
+        The length of the chromophore in monomer units.
 
     Returns
     -------
+    float
+        The reorganization energy in eV.
     """
-    # The equation for the internal reorganisation energy was obtained from
-    # the data given in
-    # Johansson, E and Larsson, S; 2004, Synthetic Metals 144: 183-191.
-    # External reorganisation energy obtained from
-    # Liu, T and Cheung, D. L. and Troisi, A; 2011, Phys. Chem. Chem. Phys.
-    # 13: 21461-21470
     lambda_external = 0.11  # eV
     if chromo_length < 12:
         lambda_internal = 0.20826 - (chromo_length * 0.01196)
@@ -624,25 +666,39 @@ def get_lambda_ij(chromo_length):
 
 
 def gaussian(x, a, x0, sigma):
-    """
+    """Evaluate a gaussian function.
 
     Parameters
     ----------
+    x : numpy.ndarray
+        The x values at which the function should be evaluated.
+    a : float
+        The height of the curve's peak.
+    x0 : float
+        The position of the center of the peak.
+    sigma : float
+        Parameter which controls the width of the bell curve.
 
     Returns
     -------
+    numpy.ndarray
     """
     return a * np.exp(-(x - x0) ** 2 / (2 * sigma ** 2))
 
 
 def gauss_fit(data):
-    """
+    """Fit the histogram of data to a gaussian.
 
     Parameters
     ----------
+    data: numpy.ndarray
+        The data to be fit.
 
     Returns
     -------
+    bin_edges, fit_args, mean, std : numpy.ndarray, numpy.ndarray, float, float
+        The bin edges, the parameters for the gaussian function, the mean value,
+        and the standard deviation.
     """
     mean = np.mean(data)
     std = np.std(data)
@@ -659,13 +715,21 @@ def gauss_fit(data):
 def plot_neighbor_hist(
     chromo_list, chromo_mol_id, box, sepcut, path
 ):  # pragma: no cover
-    """
+    """Plot the histogram of distances between neighbors.
 
     Parameters
     ----------
-
-    Returns
-    -------
+    chromo_list : list of Chromophore
+        The chromophores in the simulation.
+    chromo_mol_id : dict
+        A dictionary that maps the chromophore index to the molecule index.
+    box : numpy.ndarray, shape (3,)
+        The lengths of the box vectors in Angstroms. Box is assumed to be
+        orthogonal.
+    sepcut : list of float
+        The cutoff distances for the donor and acceptor species, respectively.
+    path : path
+        Path to directory where to save the plot.
     """
     seps_donor = []
     seps_acceptor = []
@@ -714,13 +778,24 @@ def plot_neighbor_hist(
 def plot_orientation_hist(
     chromo_list, chromo_mol_id, orientations, ocut, path
 ):  # pragma: no cover
-    """
+    """Plot histogram of the angle distributions between chromophore neighbors.
+
+    The angle between chromophores is calculated as the angle between their
+    orientation vectors.
 
     Parameters
     ----------
-
-    Returns
-    -------
+    chromo_list : list of Chromophore
+        The chromophores in the simulation.
+    chromo_mol_id : dict
+        A dictionary that maps the chromophore index to the molecule index.
+    orientations : list of numpy.ndarray
+        The orientations of each chromophore.
+    ocut : list of float
+        The cutoff orientation angles for the donor and acceptor species,
+        respectively.
+    path : path
+        Path to directory where to save the plot.
     """
     orientations_donor = []
     orientations_acceptor = []
@@ -772,13 +847,25 @@ def plot_orientation_hist(
 
 
 def create_cutoff_dict(sepcut, ocut, ticut, freqcut):
-    """
+    """Organize the various cutoffs into a dictionary.
 
     Parameters
     ----------
+    sepcut : list of float
+        The cutoff distances for the donor and acceptor species, respectively.
+    ocut : list of float
+        The cutoff orientation angles for the donor and acceptor species,
+        respectively.
+    ticut : list of float
+        The transfer intergral cutoff for the donor and acceptor species,
+        respectively.
+    freqcut : list of int
+        The frequency cutoff for the donor and acceptor species, respectively.
 
     Returns
     -------
+    dict
+        Dictionary of cutoff values.
     """
     cutoff_dict = {
         "separation": sepcut,
@@ -790,13 +877,21 @@ def create_cutoff_dict(sepcut, ocut, ticut, freqcut):
 
 
 def get_clusters(chromo_list, snap, rmax=None):
-    """
+    """Get the clusters in the snapshot based on a distance cutoff.
 
     Parameters
     ----------
+    chromo_list : list of Chromophore
+        The chromophores in the simulation.
+    snap : gsd.hoomd.Snapshot
+        The simulation snapshot.
+    rmax : float, default None
+        The maximum distance in Angstroms at which to search for neighbors. If
+        None is provided, then the maximum box vector divided by 4 is used.
 
     Returns
     -------
+    list of freud.cluster.Cluster
     """
     clusters = []
     box = snap.configuration.box
@@ -832,13 +927,21 @@ def get_clusters(chromo_list, snap, rmax=None):
 
 
 def get_orientations(chromo_list, snap):
-    """
+    """Get the orientation vectors for each chromophore.
+
+    The orientation is calculated as the plane normal vector.
 
     Parameters
     ----------
+    chromo_list : list of Chromophore
+        The chromophores in the simulation.
+    snap : gsd.hoomd.Snapshot
+        The simulation snapshot.
 
     Returns
     -------
+    list of numpy.ndarray
+        The orientations of each chromophore.
     """
     orientations = []
     for chromo in chromo_list:
@@ -853,13 +956,17 @@ def get_orientations(chromo_list, snap):
 
 
 def get_plane(positions):
-    """
+    """Calculate the plane normal vector for a group of coordinates.
 
     Parameters
     ----------
+    positions : numpy.ndarray
+        The positions of the particles.
 
     Returns
     -------
+    numpy.ndarray
+        The plane normal vector.
     """
     ## See https://goo.gl/jxuhvJ for details on this methodology.
     vec1 = hf.find_axis(positions[0], positions[1])
@@ -867,41 +974,10 @@ def get_plane(positions):
     return np.cross(vec1, vec2)
 
 
-def update_cluster(atom_ID, cluster_list, neighbor_dict): # pragma: no cover
-    """
+def _cluster_tcl_script(clusters, large_cluster, path): # pragma: no cover
+    """Create a tcl script for each identified cluster.
 
-    Parameters
-    ----------
-
-    Returns
-    -------
-    """
-    try:
-        for neighbor in neighbor_dict[atom_ID]:
-            if cluster_list[neighbor] > cluster_list[atom_ID]:
-                cluster_list[neighbor] = cluster_list[atom_ID]
-                cluster_list = update_cluster(
-                    neighbor, cluster_list, neighbor_dict
-                )
-            elif cluster_list[neighbor] < cluster_list[atom_ID]:
-                cluster_list[atom_ID] = cluster_list[neighbor]
-                cluster_list = update_cluster(
-                    neighbor, cluster_list, neighbor_dict
-                )
-    except KeyError:
-        pass
-    return cluster_list
-
-
-def cluster_tcl_script(clusters, large_cluster, path): # pragma: no cover
-    """
-    Create a tcl script for each identified cluster.
-
-    Parameters
-    ----------
-
-    Returns
-    -------
+    For use with VMD--untested.
     """
     # Obtain the IDs of the cluster sizes, sorted by largest first
     print("Sorting the clusters by size...")
@@ -965,18 +1041,25 @@ def cluster_tcl_script(clusters, large_cluster, path): # pragma: no cover
 
 
 def get_lists_for_3d_clusters(
-        clusters,
-        chromo_list,
-        colors,
-        large_cluster
+    clusters, chromo_list, colors, large_cluster
 ): # pragma: no cover
-    """
+    """Get lists of the data needed for 3D cluster plots.
 
     Parameters
     ----------
+    clusters : list of freud.cluster.Cluster
+        The clusters in the simulation.
+    chromo_list : list of Chromophore
+        The chromophores in the simulation.
+    colors : list of str
+        List of the one letter abbreviations for colors in matplotlib.
+    large_cluster : int
+        The number of chromophores for a cluster to be considered "large".
 
     Returns
     -------
+    xyzs, face_colors, edge_colors: numpy.ndarray, list of str, list of str
+        positions, and colors for face and edge in 3D scatterplot (matplotlib).
     """
     data = []
     species = ["donor", "acceptor"]
@@ -1014,20 +1097,28 @@ def get_lists_for_3d_clusters(
 def plot_clusters_3D(
     chromo_list, clusters, box, generate_tcl, path
 ):  # pragma: no cover
-    """
+    """Plot the chromophore clusters in 3D.
 
     Parameters
     ----------
-
-    Returns
-    -------
+    chromo_list : list of Chromophore
+        The chromophores in the simulation.
+    clusters : list of freud.cluster.Cluster
+        The clusters in the simulation.
+    box : numpy.ndarray, shape (3,)
+        The lengths of the box vectors in Angstroms. Box is assumed to be
+        orthogonal.
+    generate_tcl : bool
+        Whether to create a tcl file for VMD.
+    path : path
+        Path to directory where to save the plot.
     """
     fig = plt.figure()
     ax = p3.Axes3D(fig)
     colors = ["r", "g", "b", "c", "m", "y", "k"]
     large_cluster = 6
     if generate_tcl:
-        cluster_tcl_script(clusters, large_cluster, path)
+        _cluster_tcl_script(clusters, large_cluster, path)
 
     xyzs, face_colors, edge_colors = get_lists_for_3d_clusters(
         clusters, chromo_list, colors, large_cluster
@@ -1062,6 +1153,10 @@ def plot_energy_levels(chromo_list, data_dict, path):  # pragma: no cover
 
     Parameters
     ----------
+    chromo_list : list of Chromophore
+        The chromophores in the simulation.
+    path : path
+        Path to directory where to save the plot.
 
     Returns
     -------
@@ -1152,6 +1247,8 @@ def plot_delta_eij(
 
     Parameters
     ----------
+    path : path
+        Path to directory where to save the plot.
 
     Returns
     -------
@@ -1196,6 +1293,16 @@ def plot_mixed_hopping_rates(
 
     Parameters
     ----------
+    chromo_list : list of Chromophore
+        The chromophores in the simulation.
+    clusters : list of freud.cluster.Cluster
+        The clusters in the simulation.
+    chromo_mol_id : dict
+        A dictionary that maps the chromophore index to the molecule index.
+    temp : float
+        Simulation temperature in Kelvin.
+    path : path
+        Path to directory where to save the plot.
 
     Returns
     -------
@@ -1417,6 +1524,8 @@ def plot_stacked_hist_rates(
 
     Parameters
     ----------
+    path : path
+        Path to directory where to save the plot.
 
     Returns
     -------
@@ -1450,6 +1559,8 @@ def plot_stacked_hist_tis(
 
     Parameters
     ----------
+    path : path
+        Path to directory where to save the plot.
 
     Returns
     -------
@@ -1481,6 +1592,8 @@ def write_csv(data_dict, path): # pragma: no cover
 
     Parameters
     ----------
+    path : path
+        Path to directory where to save the plot.
 
     Returns
     -------
@@ -1493,11 +1606,15 @@ def write_csv(data_dict, path): # pragma: no cover
     print(f"\tCSV file written to {filepath}")
 
 
-# TODO
+# TODO EJ
+# this function always seems to get caught with the IndexError...
+# what is this function intended for?
 def get_dist_cutoff(
     bin_centers, dist, min_i=None, max_i=None, at_least=100, log=False
 ):
-    """
+    """Choose a reasonable cutoff value from a distribution.
+
+    This function is under review. Use with care.
 
     Parameters
     ----------
@@ -1557,13 +1674,19 @@ def get_dist_cutoff(
 
 
 def plot_ti_hist(chromo_list, chromo_mol_id, ticut, path):  # pragma: no cover
-    """
+    """Plot the histogram of inter- and intra-molecular transfer interals.
 
     Parameters
     ----------
-
-    Returns
-    -------
+    chromo_list : list of Chromophore
+        The chromophores in the simulation.
+    chromo_mol_id : dict
+        A dictionary that maps the chromophore index to the molecule index.
+    ticut : list of float
+        The transfer intergral cutoff for the donor and acceptor species,
+        respectively.
+    path : path
+        Path to directory where to save the plot.
     """
     # ti_dist [[DONOR], [ACCEPTOR]]
     ti_intra = [[], []]
@@ -1622,13 +1745,18 @@ def plot_ti_hist(chromo_list, chromo_mol_id, ticut, path):  # pragma: no cover
 def plot_frequency_dist(
     c_type, carrier_history, freqcut, path
 ):  # pragma: no cover
-    """
+    """Plot the histogram of frequency distributions.
 
     Parameters
     ----------
-
-    Returns
-    -------
+    c_type : str
+        The carrier type, "electron" or "hole".
+    carrier_history : scipy.sparse.lil_matrix
+        The carrier history.
+    freqcut : list of int
+        The frequency cutoff for the donor and acceptor species, respectively.
+    path : path
+        Path to directory where to save the plot.
     """
     c_ind = ["hole", "electron"].index(c_type)
     nonzero = list(zip(*carrier_history.nonzero()))
@@ -1667,13 +1795,16 @@ def plot_frequency_dist(
 
 
 def plot_net_frequency_dist(c_type, carrier_history, path):  # pragma: no cover
-    """
+    """Plot the frequency distribution.
 
     Parameters
     ----------
-
-    Returns
-    -------
+    c_type : str
+        The carrier type, "electron" or "hole".
+    carrier_history : scipy.sparse.lil_matrix
+        The carrier history.
+    path : path
+        Path to directory where to save the plot.
     """
     nonzero = list(zip(*carrier_history.nonzero()))
     frequencies = []
@@ -1702,13 +1833,16 @@ def plot_net_frequency_dist(c_type, carrier_history, path):  # pragma: no cover
 def plot_discrepancy_frequency_dist(
     c_type, carrier_history, path
 ):  # pragma: no cover
-    """
+    """Plot the frequency discrepancy distribution.
 
     Parameters
     ----------
-
-    Returns
-    -------
+    c_type : str
+        The carrier type, "electron" or "hole".
+    carrier_history : scipy.sparse.lil_matrix
+        The carrier history.
+    path : path
+        Path to directory where to save the plot.
     """
     nonzero = list(zip(*carrier_history.nonzero()))
     frequencies = []
@@ -1748,13 +1882,30 @@ def plot_discrepancy_frequency_dist(
 def plot_mobility_msd(
     c_type, times, msds, time_stderr, msd_stderr, temp, path
 ):  # pragma: no cover
-    """
+    """Plot the mean-squared displacement and calculate the mobility.
 
     Parameters
     ----------
+    c_type : str
+        The carrier type, "electron" or "hole".
+    times : list of float
+        The carrier lifetimes in seconds.
+    msds : list of float
+        The carrier mean squared displacement in meters.
+    time_stderr : list of float
+        The standard error of the carrier lifetimes in seconds.
+    msd_stderr : list of float
+        The standard error of the carrier mean squared displacement in meters.
+    temp : float
+        Simulation temperature in Kelvin.
+    path : path
+        Path to directory where to save the plot.
 
     Returns
     -------
+    mobility, mob_error, r_squared : float, float, float
+        The mobility in centimeters^2/(Volt second), the standard error of the
+        mobility, and the r-squared value of the linear fit.
     """
     # Create the first figure that will be replotted each time
     plt.figure()
@@ -1769,19 +1920,39 @@ def plot_mobility_msd(
     )
     print("----------------------------------------")
     plt.close()
-    return mobility, mob_error, r_squared
+    return mobility, mob_error, r_square
 
 
 def carrier_plots(
     c_type, carrier_data, chromo_list, snap, freqcut, three_d, temp, path
 ): # pragma: no cover
-    """
+    """Wrap the plotting functions for each carrier type.
 
     Parameters
     ----------
+    c_type : str
+        The carrier type, "electron" or "hole".
+    carrier_data : dict
+        The data for one carrier type.
+    chromo_list : list of Chromophore
+        The chromophores in the simulation.
+    snap : gsd.hoomd.Snapshot
+        The simulation snapshot.
+    freqcut : list of int
+        The frequency cutoff for the donor and acceptor species, respectively.
+    three_d : bool
+        Whether to create 3D plots.
+    temp : float
+        Simulation temperature in Kelvin.
+    path : path
+        Path to directory where to save the plot.
 
     Returns
     -------
+    anisotropy, mobility, mob_error, r_squared : float, float, float, float
+        The anisotropy, the mobility in centimeters^2/(Volt second), the
+        standard error of the mobility, and the r-squared value of the linear
+        fit.
     """
     print(f"Considering the transport of {c_type}...")
     if c_type == "hole":
@@ -1835,20 +2006,50 @@ def main(
     ocut=[None, None],
     ticut=[None, None],
     generate_tcl=False,
-    sequence_donor=None,
-    sequence_acceptor=None,
     backend=None,
     use_vrh=False,
     koopmans=None,
     boltz=False,
 ):  # pragma: no cover
-    """
+    """Wrap all plotting functions.
 
     Parameters
     ----------
-
-    Returns
-    -------
+    combined_data : dict
+        The data for both carrier types.
+    temp : float
+        Simulation temperature in Kelvin.
+    chromo_list : list of Chromophore
+        The chromophores in the simulation.
+    snap : gsd.hoomd.Snapshot
+        The simulation snapshot.
+    path : path
+        Path to directory where to save the plot.
+    three_d : bool, default False
+        Whether to create 3D plots.
+    freqcut : list of int, default [None, None]
+        The frequency cutoff for the donor and acceptor species, respectively.
+        If None is given, `get_dist_cutoff` will be used to choose a value.
+    sepcut : list of float, default [None, None]
+        The cutoff distances for the donor and acceptor species, respectively.
+        If None is given, `get_dist_cutoff` will be used to choose a value.
+    ocut : list of float, default [None, None]
+        The cutoff orientation angles for the donor and acceptor species,
+        respectively. If None is given, `get_dist_cutoff` will be used to choose
+        a value.
+    ticut : list of float, default [None, None]
+        The transfer intergral cutoff for the donor and acceptor species,
+        respectively. If None is given, `get_dist_cutoff` will be used to choose
+        a value.
+    generate_tcl : bool, False
+        Whether to create a tcl file for VMD.
+    backend : str, default None
+        The name of a matplotlib backend.
+    use_vrh : bool, default False
+    koopmans : float, default None
+        A scaling factor to apply to the rate.
+    boltz : bool, default False
+        Whether to use a Boltzmann energy penalty.
     """
     # Load the matplotlib backend and the plotting subroutines
     global plt
@@ -1957,29 +2158,3 @@ def main(
 
     print("Writing CSV Output File...")
     write_csv(data_dict, path)
-
-    print("Plotting Mobility and Anisotropy progressions...")
-    if sequence_donor is not None:
-        if data_dict["hole_anisotropy"]:
-            plot_temp_progression(
-                sequence_donor,
-                data_dict["hole_mobility"],
-                data_dict["hole_mobility_err"],
-                data_dict["hole_anisotropy"],
-                "hole",
-                fig_dir,
-            )
-    if sequence_acceptor is not None:
-        data_dict["electron_anisotropy"]
-        data_dict["electron_mobility"]
-        if data_dict["electron_anisotropy"]:
-            plot_temp_progression(
-                sequence_acceptor,
-                data_dict["electron_mobility"],
-                data_dict["electron_mobility_err"],
-                data_dict["electron_anisotropy"],
-                "electron",
-                fig_dir,
-            )
-    else:
-        print("Skipping plotting mobility evolution.")
