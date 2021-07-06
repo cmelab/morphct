@@ -194,6 +194,7 @@ class System():  # pragma: no cover
         n_holes=0,
         n_elec=0,
         seed=42,
+        combine=True,
         carrier_kwargs={},
         verbose=0
     ):
