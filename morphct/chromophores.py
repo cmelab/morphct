@@ -36,10 +36,11 @@ class Chromophore:
         Snapshot indices of the particles which belong to this chromophore.
     species : str
         Chromophore species ('donor' or 'acceptor')
-    conversion_dict : dictionary
-        A dictionary that maps the atom type to its element. e.g., `{'c3': C}`
+    conversion_dict : dictionary, default None
+        A dictionary that maps the atom type to its element. e.g., `{'c3': C}`.
         An instance that maps AMBER types to their element can be found in
-        `amber_dict`.
+        `amber_dict`. If None is given, assume the particles already have
+        element names.
     reorganization_energy : float, default 0.3064
         Energy (in eV) required to "reorganize" the system structure from the
         final to initial coordinates. The default value is for P3HT and came
@@ -47,6 +48,8 @@ class Chromophore:
     vrh_delocalization : float, default 2e-10
         Variable-range hopping modifier in meters. Hopping rates are scaled by
         exp(r/vrh_delocalization) when `use_vrh` is True.
+    charge : int, default 0
+        The charge (in units of electrons) associated with this chromophore.
 
     Attributes
     ----------
@@ -107,9 +110,10 @@ class Chromophore:
         snap,
         atom_ids,
         species,
-        conversion_dict,
+        conversion_dict=None,
         reorganization_energy=0.3064,
         vrh_delocalization=2e-10,
+        charge=0,
     ):
         self.id = chromo_id
         if species.lower() not in ["donor", "acceptor"]:
@@ -119,6 +123,7 @@ class Chromophore:
         self.vrh_delocalization = vrh_delocalization
         self.atom_ids = atom_ids
         self.n_atoms = len(atom_ids)
+        self.charge = charge
 
         # Sets unwrapped_center, center, and image attributes
         self._set_center(snap, atom_ids)
@@ -183,7 +188,7 @@ class Chromophore:
         return self.homo
 
 
-def get_chromo_ids_smiles(snap, smarts_str, conv_dict):
+def get_chromo_ids_smiles(snap, smarts_str, conversion_dict=None):
     """Get the atom indices in a snapshot associated with a SMARTS string.
 
     This function can be used to determine the atom indices for each
@@ -202,10 +207,11 @@ def get_chromo_ids_smiles(snap, smarts_str, conv_dict):
         lengths in this file have been converted to Angstroms.
     smarts_str : str
         SMARTS string used to find the atom indices.
-    conversion_dict : dictionary
-        A dictionary that maps the atom type to its element. e.g., `{'c3': C}`
+    conversion_dict : dictionary, default None
+        A dictionary that maps the atom type to its element. e.g., `{'c3': C}`.
         An instance that maps AMBER types to their element can be found in
-        `amber_dict`.
+        `amber_dict`. If None is given, assume the particles already have
+        element names.
 
     Returns
     -------
@@ -223,7 +229,10 @@ def get_chromo_ids_smiles(snap, smarts_str, conv_dict):
     mol = openbabel.OBMol()
     for i, typeid in enumerate(snap.particles.typeid):
         a = mol.NewAtom()
-        element = conv_dict[snap.particles.types[typeid]]
+        if conversion_dict is not None:
+            element = conversion_dict[snap.particles.types[typeid]]
+        else:
+            element = ele.element_from_symbol(snap.particles.types[typeid])
         a.SetAtomicNum(element.atomic_number)
         a.SetVector(*[float(x) for x in unwrapped_positions[i]])
 
@@ -252,7 +261,7 @@ def get_chromo_ids_smiles(snap, smarts_str, conv_dict):
     return atom_ids
 
 
-def set_neighbors_voronoi(chromo_list, snap, conversion_dict, d_cut=10):
+def set_neighbors_voronoi(chromo_list, snap, conversion_dict=None, d_cut=10):
     """Set the chromophore neighbors using voronoi analysis.
 
     See https://freud.readthedocs.io/en/latest/modules/locality.html#freud.locality.Voronoi
@@ -265,10 +274,11 @@ def set_neighbors_voronoi(chromo_list, snap, conversion_dict, d_cut=10):
     snap : gsd.hoomd.Snapshot
         Atomistic simulation snapshot from a GSD file. It is expected that the
         lengths in this file have been converted to Angstroms.
-    conversion_dict : dictionary
-        A dictionary that maps the atom type to its element. e.g., `{'c3': C}`
+    conversion_dict : dictionary, default None
+        A dictionary that maps the atom type to its element. e.g., `{'c3': C}`.
         An instance that maps AMBER types to their element can be found in
-        `amber_dict`.
+        `amber_dict`. If None is given, assume the particles already have
+        element names.
     d_cut : float, default 10
         The distance cutoff for neighbors.
 
@@ -294,6 +304,8 @@ def set_neighbors_voronoi(chromo_list, snap, conversion_dict, d_cut=10):
         elif (i, j) not in neighbors and (j, i) not in neighbors:
             chromo_i = chromo_list[i]
             chromo_j = chromo_list[j]
+            if chromo_i.species != chromo_j.species:
+                continue
             centers = []
             distances = []
             images = []

@@ -2,19 +2,23 @@ name: morphct-ex
 channels:
 - conda-forge
 dependencies:
-- ele=0.1.0
-- freud=2.4.1
-- gsd=2.4.0
-- matplotlib=3.3.4
-- numpy=1.19
+- blas=*=openblas
+- cython=0.29
+- ele=0.2.0
+- freud=2.6.2
+- gsd=2.4.2
+- h5py=2.10
+- hdf5=1.10
+- matplotlib=3.4.2
+- numpy=1.21
 - openbabel=3.1.1
 - pip=21.0.1
 - python=3.7
-- scipy=1.4.1
-- mbuild=0.10.13
-- py3dmol=0.8.0
+- scipy=1.7
 - ipython=7.10.0 
 - jupyterlab=3.0.9
+- mbuild=0.11.0
 - nodejs>=10
+- py3dmol=0.8.0
 - pip:
-    - pyscf==1.7
+  - pyscf==1.7
