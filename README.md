@@ -59,4 +59,4 @@ pytest
 ## Inputs ##
 
 * After setup, MorphCT requires the input molecular system (atomistic), and atomic indices of the chromophore (can be obtained via SMARTS matching).
-* An example is provided for the user in `morphct/examples/morphct-workflow.ipynb`.
+* Jupyter notebook examples are provided for the user in `morphct/examples`.

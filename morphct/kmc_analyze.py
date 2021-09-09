@@ -66,17 +66,15 @@ def get_times_msds(carrier_data):
     squared_disps = defaultdict(list)
     actual_times = defaultdict(list)
     for i, displacement in enumerate(carrier_data["displacement"]):
-        if (
-            carrier_data["current_time"][i] > carrier_data["lifetime"][i] * 2
-            or carrier_data["current_time"][i] < carrier_data["lifetime"][i] / 2
-            or carrier_data["n_hops"][i] == 1
-        ):
+        current = carrier_data["current_time"][i]
+        lt = carrier_data["lifetime"][i]
+        n_hops = carrier_data["n_hops"][i]
+        if current > lt * 2 or current < lt / 2 or n_hops == 1:
             total += 1
             continue
-        key = carrier_data["lifetime"][i]
         # A -> m
-        squared_disps[key] += [(carrier_data["displacement"][i] * 1e-10) ** 2]
-        actual_times[key] += [carrier_data["current_time"][i]]
+        squared_disps[lt] += [(carrier_data["displacement"][i] * 1e-10) ** 2]
+        actual_times[lt] += [current]
 
         # Also keep track of whether each carrier is a hole or an electron
         total_averaged += 1
@@ -369,8 +367,8 @@ def plot_msd(
     """
     fit_time = np.linspace(np.min(times), np.max(times), 100)
     gradient, intercept, r_val, p_val, std_err = linregress(times, msds)
-    print(f"Standard Error {std_err}")
-    print(f"Fitting r_val = {r_val}")
+    print(f"\tStandard Error {std_err}")
+    print(f"\tFitting r_val = {r_val}")
     fit_msd = (fit_time * gradient) + intercept
     mobility, mob_error = calc_mobility(
         fit_time, fit_msd, np.average(time_stderr), np.average(msd_stderr), temp
@@ -597,9 +595,11 @@ def plot_anisotropy(carrier_data, c_type, three_d, path):  # pragma: no cover
     xyzs = np.array(xyzs)
 
     anisotropy = get_anisotropy(xyzs)
-    print("----------------------------------------")
-    print(f"{c_type} charge transport anisotropy: {anisotropy:.3f}")
-    print("----------------------------------------")
+    print("\t----------------------------------------")
+    print(
+        f"\t{c_type.capitalize()} charge transport anisotropy: {anisotropy:.3f}"
+    )
+    print("\t----------------------------------------")
 
     if three_d:
         # Reduce number of plot markers
@@ -901,13 +901,13 @@ def get_clusters(chromo_list, snap, rmax=None):
         positions = np.array([chromo_list[i].center for i in chromo_ids])
         print(f"Examining the {sp} material...")
         if len(positions) == 0:
-            print("No material found. Continuing...")
+            print("\tNo material found. Continuing...")
             clusters.append(None)
             continue
         print("Calculating clusters...")
         if rmax is None:
             rmax = max(box) / 4
-            print(f"No cutoff provided: cluster cutoff set to {rmax:.3f}")
+            print(f"\tNo cutoff provided: cluster cutoff set to {rmax:.3f}")
 
         cl = freud.cluster.Cluster()
 
@@ -916,12 +916,12 @@ def get_clusters(chromo_list, snap, rmax=None):
         large = sum([1 for c in cl.cluster_keys if len(c) > 6])
         biggest = max([len(c) for c in cl.cluster_keys])
         psi = large / cl.num_clusters
-        print("----------------------------------------")
-        print(f"{sp.capitalize()}: Detected {cl.num_clusters} total")
-        print(f"and {large} large clusters (size > 6).")
-        print(f"Largest cluster size: {biggest} chromophores.")
-        print(f'Ratio in "large" clusters: {psi:.2f}')
-        print("----------------------------------------")
+        print("\t----------------------------------------")
+        print(f"\t{sp.capitalize()}: Detected {cl.num_clusters} total")
+        print(f"\tand {large} large clusters (size > 6).")
+        print(f"\tLargest cluster size: {biggest} chromophores.")
+        print(f'\tRatio in "large" clusters: {psi:.2f}')
+        print("\t----------------------------------------")
         clusters.append(cl)
     return clusters
 
@@ -1212,23 +1212,25 @@ def plot_energy_levels(chromo_list, data_dict, path):  # pragma: no cover
         (
             acceptor_bin_edges,
             acceptor_fit_args,
-            acceptor_mean,
+            acceptor_av,
             acceptor_std,
         ) = gauss_fit(acceptor_delta_eij)
         acceptor_err = acceptor_std / np.sqrt(len(acceptor_delta_eij))
 
-        data_dict["acceptor_delta_eij_mean"] = acceptor_mean
+        data_dict["acceptor_delta_eij_mean"] = acceptor_av
         data_dict["acceptor_delta_eij_std"] = acceptor_std
         data_dict["acceptor_delta_eij_err"] = acceptor_err
         lumo_av = np.average(lumo_levels)
         lumo_std = np.std(lumo_levels)
         lumo_err = lumo_std / np.sqrt(len(lumo_levels))
-        data_dict["acceptor_lumo_mean"] = LUMO_av
-        data_dict["acceptor_lumo_std"] = LUMO_std
-        data_dict["acceptor_lumo_err"] = LUMO_err
+        data_dict["acceptor_lumo_mean"] = lumo_av
+        data_dict["acceptor_lumo_std"] = lumo_std
+        data_dict["acceptor_lumo_err"] = lumo_err
         print(
-            f"Acceptor LUMO Level = {lumo_av} +/- {lumo_err}\n",
-            f"Acceptor Delta E_ij mean = {acceptor_mean} +/-{acceptor_err}",
+            f"Acceptor LUMO Level = {lumo_av:.3f} +/- {lumo_err:.3f}\n",
+            "Acceptor Delta E_ij mean = ",
+            f"{acceptor_av:.3f} +/- {acceptor_err:.3f}",
+            sep=""
         )
         plot_delta_eij(
             acceptor_delta_eij,
@@ -1669,7 +1671,7 @@ def get_dist_cutoff(
             cutoff = 10 ** cutoff
         return cutoff
     except IndexError:
-        print("Notice: No minima found in distribution. Cutoff set to None.")
+        print("\tNotice: No minima found in distribution. Cutoff set to None.")
         return None
 
 
@@ -1773,11 +1775,13 @@ def plot_frequency_dist(
     smooth_n = gaussian_filter(n, 1.0)
     plt.plot(bin_centers, smooth_n, color="r")
     if freqcut[c_ind] is None:
-        print("DYNAMIC CUT")
+        print("\tDYNAMIC CUT")
         freqcut[c_ind] = get_dist_cutoff(
             bin_centers, smooth_n, min_i=-1, at_least=100, log=True
         )
-        print(f"Cluster cut-off based on hop frequency set to {freqcut[c_ind]}")
+        print(
+            f"\tCluster cut-off based on hop frequency set to {freqcut[c_ind]}"
+        )
     if freqcut[c_ind] is not None:
         plt.axvline(np.log10(freqcut[c_ind]), c="k")
 
@@ -1815,19 +1819,22 @@ def plot_net_frequency_dist(c_type, carrier_history, path):  # pragma: no cover
         frequency = np.abs(carrier_history[i, j] - carrier_history[j, i])
         if frequency > 0:
             frequencies.append(np.log10(frequency))
-    plt.figure()
-    plt.hist(frequencies, bins=60, color="b")
-    plt.xlabel(f"Net {c_type} hops (Arb. U.)")
-    ax = plt.gca()
-    tick_labels = np.arange(0, np.ceil(np.max(frequencies)) + 1, 1)
-    plt.xlim([0, np.ceil(np.max(frequencies))])
-    plt.xticks(tick_labels, [rf"10$^{{{x}}}$" for x in tick_labels])
-    plt.ylabel("Frequency (Arb. U.)")
-    filename = f"net_hop_freq_{c_type}.png"
-    filepath = os.path.join(path, filename)
-    plt.savefig(filepath, dpi=300)
-    plt.close()
-    print(f"\tFigure saved as {filename}")
+    if frequencies:
+        plt.figure()
+        plt.hist(frequencies, bins=60, color="b")
+        plt.xlabel(f"Net {c_type} hops (Arb. U.)")
+        ax = plt.gca()
+        tick_labels = np.arange(0, np.ceil(np.max(frequencies)) + 1, 1)
+        plt.xlim([0, np.ceil(np.max(frequencies))])
+        plt.xticks(tick_labels, [rf"10$^{{{x}}}$" for x in tick_labels])
+        plt.ylabel("Frequency (Arb. U.)")
+        filename = f"net_hop_freq_{c_type}.png"
+        filepath = os.path.join(path, filename)
+        plt.savefig(filepath, dpi=300)
+        plt.close()
+        print(f"\tFigure saved as {filename}")
+    else:
+        print("\tNo net hop frequency.")
 
 
 def plot_discrepancy_frequency_dist(
@@ -1874,8 +1881,8 @@ def plot_discrepancy_frequency_dist(
     filepath = os.path.join(path, filename)
     plt.savefig(filepath, dpi=300)
     plt.close()
-    print(f"There are {net_equals_total} paths with one-way transport.")
-    print(f"There are {net_near_total} paths with total - net < 10.")
+    print(f"\tThere are {net_equals_total} paths with one-way transport.")
+    print(f"\tThere are {net_near_total} paths with total - net < 10.")
     print(f"\tFigure saved as {filename}")
 
 
@@ -1913,14 +1920,14 @@ def plot_mobility_msd(
     mobility, mob_error, r_squared = plot_msd(
         times, msds, time_stderr, msd_stderr, c_type, temp, path
     )
-    print("----------------------------------------")
+    print("\t----------------------------------------")
     print(
-        f"{c_type.capitalize()} mobility = {mobility:.2E} ",
+        f"\t{c_type.capitalize()} mobility = {mobility:.2E} ",
         f"+/- {mob_error:.2E} cm^2 V^-1 s^-1",
     )
-    print("----------------------------------------")
+    print("\t----------------------------------------")
     plt.close()
-    return mobility, mob_error, r_square
+    return mobility, mob_error, r_squared
 
 
 def carrier_plots(
@@ -1982,14 +1989,17 @@ def carrier_plots(
             print("Determining carrier hopping connections...")
             plot_connections(chromo_list, carrier_history, c_type, path)
 
-    print(f"Plotting {c_type} hop frequency distribution...")
-    plot_frequency_dist(c_type, carrier_history, freqcut, path)
+    if carrier_history is not None:
+        print(f"Plotting {c_type} hop frequency distribution...")
+        plot_frequency_dist(c_type, carrier_history, freqcut, path)
 
-    print(f"Plotting {c_type} net hop frequency distribution...")
-    plot_net_frequency_dist(c_type, carrier_history, path)
+        print(f"Plotting {c_type} net hop frequency distribution...")
+        plot_net_frequency_dist(c_type, carrier_history, path)
 
-    print("Plotting (total - net hops) discrepancy distribution...")
-    plot_discrepancy_frequency_dist(c_type, carrier_history, path)
+        print("Plotting (total - net hops) discrepancy distribution...")
+        plot_discrepancy_frequency_dist(c_type, carrier_history, path)
+    else:
+        print(f"No history for {c_type}. Skipping frequency analysis.")
 
     return anisotropy, mobility, mob_error, r_squared
 
@@ -2131,8 +2141,6 @@ def main(
     )
     plot_ti_hist(chromo_list, chromo_mol_id, ticut, fig_dir)
     cutoff_dict = create_cutoff_dict(sepcut, ocut, ticut, freqcut)
-    print("Cut-offs: ('value', [donor, acceptor])")
-    print(*[f"\t{i}" for i in cutoff_dict.items()], sep="\n")
 
     clusters = get_clusters(chromo_list, snap, rmax=None)
 

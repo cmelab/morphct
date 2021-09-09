@@ -1,3 +1,5 @@
+examples/output*
+scratch
 record.txt
 .pytest_cache/
 codecoverage/
