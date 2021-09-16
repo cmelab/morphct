@@ -660,11 +660,10 @@ def run_kmc(
         )
         running_jobs.append(p)
         pipes.append(recv_end)
-        p.start()
 
-    # wait for all jobs to finish
     for p in running_jobs:
-        p.join()
+        p.start()
+    # wait for all jobs to finish
 
     carriers_lists = [x.recv() for x in pipes]
 
