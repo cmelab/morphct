@@ -354,7 +354,9 @@ conversion_dict = {
 
 
 amber_dict = {
+    "H1": ele.element_from_symbol("H"),
     "H": ele.element_from_symbol("H"),
+    "CT": ele.element_from_symbol("C"),
     "S": ele.element_from_symbol("S"),
     "C": ele.element_from_symbol("C"),
     "c": ele.element_from_symbol("C"),
@@ -362,6 +364,7 @@ amber_dict = {
     "c2": ele.element_from_symbol("C"),
     "c3": ele.element_from_symbol("C"),
     "ca": ele.element_from_symbol("C"),
+    "CA": ele.element_from_symbol("C"),
     "cp": ele.element_from_symbol("C"),
     "cq": ele.element_from_symbol("C"),
     "cc": ele.element_from_symbol("C"),

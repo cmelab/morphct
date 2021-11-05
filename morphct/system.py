@@ -116,6 +116,7 @@ class System():  # pragma: no cover
         """
         start = len(self.chromophores)
         for i, ind in enumerate(indices):
+            print("hello")
             self._chromophores.append(
                 Chromophore(
                     i+start,
