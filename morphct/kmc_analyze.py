@@ -834,7 +834,7 @@ def plot_orientation_hist(
             )
         if ocut[sp_i] is not None:
             print(f"{sp} orientation cluster cut-off set to {ocut[sp_i]}")
-            plt.axvline(ocuts[sp_i], c="k")
+            plt.axvline(ocut[sp_i], c="k")
         plt.xlabel(f"{sp.capitalize()} Orientations (rad)")
         plt.xlim([0, np.deg2rad(90)])
         plt.xticks(np.arange(0, np.deg2rad(91), np.deg2rad(15)))
