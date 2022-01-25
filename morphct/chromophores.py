@@ -159,18 +159,15 @@ class Chromophore:
         )
 
     def _set_center(self, snap, atom_ids):
-        box = snap.configuration.box[:3]
-        unwrapped_pos = snap.particles.position + snap.particles.image * box
-        center = np.mean(unwrapped_pos[atom_ids], axis=0)
-        img = np.zeros(3)
-        while (center + img * box < -box / 2).any() or (
-            center + img * box > box / 2
-        ).any():
-            img[np.where(center < -box / 2)] += 1
-            img[np.where(center > box / 2)] -= 1
+
+        box = freud.Box.from_box(snap.configuration.box)
+        unwrapped_pos = box.unwrap(snap.particles.position[atom_ids], snap.particles.image[atom_ids])
+        center = np.mean(unwrapped_pos, axis = 0)
+        image = box.get_images(center)
         self.unwrapped_center = center
-        self.center = center + img * box
-        self.image = img
+        self.image = image
+        self.center = box.wrap(center)
+
 
     def get_MO_energy(self):
         """Get the frontier molecular orbital energy for this chromophore.

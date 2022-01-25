@@ -1,7 +1,8 @@
 import multiprocessing as mp
 from multiprocessing import get_context
-import numpy as np
 
+import ele
+import numpy as np
 import pyscf
 from pyscf.semiempirical import MINDO3
 
