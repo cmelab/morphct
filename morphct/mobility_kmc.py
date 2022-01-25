@@ -500,7 +500,7 @@ def snap_molecule_indices(snap):
     """
     system = freud.AABBQuery.from_system(snap)
     n_query_pts = n_pts = snap.bonds.N
-    query_pt_inds = snap.bonds.group[:, 0]
+    query_pt_inds = np.sort(snap.bonds.group[:, 0])
     pt_inds = snap.bonds.group[:, 1]
     distances = system.box.compute_distances(
         system.points[query_pt_inds], system.points[pt_inds]
@@ -660,11 +660,10 @@ def run_kmc(
         )
         running_jobs.append(p)
         pipes.append(recv_end)
-        p.start()
 
-    # wait for all jobs to finish
     for p in running_jobs:
-        p.join()
+        p.start()
+    # wait for all jobs to finish
 
     carriers_lists = [x.recv() for x in pipes]
 
