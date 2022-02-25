@@ -1540,10 +1540,11 @@ def plot_stacked_hist_rates(
         color=["r", "b"],
         label=labels,
     )
-    plt.ylabel("Frequency (Arb. U.)")
-    plt.xlabel(rf"{species.capitalize()} k$_{{i,j}}$ (s$^{-1}$)")
+    plt.ylabel("Frequency (Arb. U.)",fontsize=16)
+    plt.xlabel(rf"{species.capitalize()} k$_{{i,j}}$ (s$^{-1}$)",fontsize=16)
     plt.xlim([1, 1e18])
-    plt.xticks([1e0, 1e3, 1e6, 1e9, 1e12, 1e15, 1e18])
+    plt.yticks(fontsize=14)
+    plt.xticks([1e0, 1e3, 1e6, 1e9, 1e12, 1e15, 1e18],fontsize=14)
     plt.ylim([0, np.max(n) * 1.02])
     plt.legend(loc=2, prop={"size": 18})
     plt.gca().set_xscale("log")
