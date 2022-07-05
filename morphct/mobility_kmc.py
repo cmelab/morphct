@@ -402,6 +402,7 @@ def run_single_kmc(
         carrier_list is returned. Otherwise it is assumed this function is being
         as part of a multiprocessing run and nothing is returned.
     """
+
     if seed is not None:
         np.random.seed(seed)
 
@@ -433,6 +434,7 @@ def run_single_kmc(
     carrier_list = []
     box = snap.configuration.box[:3]
     for i_job, [carrier_no, lifetime, ctype] in enumerate(jobs):
+        hopsites = []
         v_print(f"starting job {i_job}", verbose, filename=filename)
         t1 = time.perf_counter()
         # Find a random position to start the carrier in
@@ -458,13 +460,22 @@ def run_single_kmc(
         continue_sim = True
         while continue_sim:
             continue_sim = i_carrier.calculate_hop(chromo_list, verbose=verbose)
+            hopsites.append(i_carrier.current_chromo.center)
         # Now the carrier has finished hopping, let's calculate its vitals
         i_carrier.update_displacement()
 
         t2 = time.perf_counter()
         elapsed_time = float(t2) - float(t1)
         time_str = hf.time_units(elapsed_time)
-
+        
+        if not os.path.exists(kmc_directory + "/carrier_pathfiles"):
+            os.makedirs(kmc_directory, "carrier_pathfiles")
+        hoppathfile = os.path.join(kmc_directory,"carrier_pathfiles/", f"{i_carrier.id}.npy")
+        if os.path.exists(hoppathfile):
+            os.remove(hoppathfile) 
+        hopsites = np.array(hopsites)
+        np.save(hoppathfile, hopsites)
+            
         v_print(
             f"\t{i_carrier.c_type} hopped {i_carrier.n_hops} times over "
             + f"{i_carrier.current_time:.2e} seconds "
