@@ -415,6 +415,8 @@ def run_single_kmc(
     else:
         filename = None
 
+
+
     v_print(f"Found {len(jobs):d} jobs to run", verbose, filename=filename)
 
     try:
@@ -468,11 +470,16 @@ def run_single_kmc(
         elapsed_time = float(t2) - float(t1)
         time_str = hf.time_units(elapsed_time)
         
-        if not os.path.exists(kmc_directory + "/carrier_pathfiles"):
-            os.makedirs(kmc_directory, "carrier_pathfiles")
-        hoppathfile = os.path.join(kmc_directory,"carrier_pathfiles/", f"{i_carrier.id}.npy")
+        hopdirectory = os.path.join(kmc_directory, "carrier_pathfiles")
+
+        if not os.path.exists(hopdirectory):
+            os.makedirs(hopdirectory)
+
+        hoppathfile = os.path.join(hopdirectory, f"{i_carrier.id}.npy")
+
         if os.path.exists(hoppathfile):
             os.remove(hoppathfile) 
+ 
         hopsites = np.array(hopsites)
         np.save(hoppathfile, hopsites)
             
