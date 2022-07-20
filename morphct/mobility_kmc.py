@@ -479,9 +479,10 @@ def run_single_kmc(
 
         if os.path.exists(hoppathfile):
             os.remove(hoppathfile) 
- 
-        hopsites = np.array(hopsites)
-        np.save(hoppathfile, hopsites)
+        
+        if i_carrier.id in range(0,5,1):
+            hopsites = np.array(hopsites)
+            np.save(hoppathfile, hopsites)
             
         v_print(
             f"\t{i_carrier.c_type} hopped {i_carrier.n_hops} times over "
