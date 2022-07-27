@@ -1537,22 +1537,22 @@ def plot_stacked_hist_rates(
         [data1, data2],
         bins=np.logspace(1, 18, 40),
         stacked=True,
-        color=["r", "b"],
+        color=["tab:orange", "tab:blue"],
         label=labels,
     )
-    plt.ylabel("Frequency (Arb. U.)")
-    plt.xlabel(rf"{species.capitalize()} k$_{{i,j}}$ (s$^{-1}$)")
+    plt.ylabel("Frequency (Arb. U.)",fontsize=16)
+    plt.xlabel(rf"{species.capitalize()} k$_{{i,j}}$ (s$^{-1}$)", fontsize = 16)
     plt.xlim([1, 1e18])
-    plt.xticks([1e0, 1e3, 1e6, 1e9, 1e12, 1e15, 1e18])
+    plt.xticks([1e0, 1e3, 1e6, 1e9, 1e12, 1e15, 1e18], fontsize = 14)
+    plt.yticks(fontsize = 14)
     plt.ylim([0, np.max(n) * 1.02])
     plt.legend(loc=2, prop={"size": 18})
     plt.gca().set_xscale("log")
     filename = f"{species}_hopping_rate_clusters.png"
     filepath = os.path.join(path, filename)
-    plt.savefig(filepath, dpi=300)
+    plt.savefig(filepath, dpi=300, bbox_inches = "tight")
     plt.close()
     print(f"\tFigure saved as {filename}")
-
 
 def plot_stacked_hist_tis(
     data1, data2, labels, species, cutoff, path
