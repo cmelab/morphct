@@ -92,6 +92,10 @@ def get_times_msds(carrier_data):
         time_stderr.append(np.std(actual_times[lt]) / len(actual_times[lt]))
         msds.append(np.average(disps))
         msd_stderr.append(np.std(disps) / len(disps))
+
+    if len(times) == 0:
+        raise Exception(f"All carrier data has been discarded. Re-check the input.")
+
     return times, msds, time_stderr, msd_stderr
 
 
