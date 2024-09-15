@@ -9,16 +9,18 @@ dependencies:
 - gsd=2.4.2
 - h5py=2.10
 - hdf5=1.10
+- ipython=7.10.0 
+- jupyterlab=3.0.9
 - matplotlib=3.4.2
+- mbuild=0.13.1
+- nodejs>=10
 - numpy=1.21
 - openbabel=3.1.1
 - pip=21.0.1
-- python=3.7
-- scipy=1.7
-- ipython=7.10.0 
-- jupyterlab=3.0.9
-- mbuild=0.11.0
-- nodejs>=10
 - py3dmol=0.8.0
+- python=3.7
+- rdkit
+- scipy=1.7
 - pip:
   - pyscf==1.7
+  - git+https://github.com/cmelab/grits
